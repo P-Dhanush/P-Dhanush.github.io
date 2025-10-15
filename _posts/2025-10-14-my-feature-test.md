@@ -29,7 +29,7 @@ Sometimes you need to organize information into lists.
 
 Yes, you can absolutely add an image. First, upload the image file to your repository (a good practice is to create an `assets/images` folder). Then, link to it like this:
 
-![A descriptive caption for my sample image](./assets/images/Screenshot2025-10-15082945.png)
+![A descriptive caption for my sample image](./assets/images/Screenshot2025-10-15091938.png)
 
 ## Displaying Code Snippets
 
