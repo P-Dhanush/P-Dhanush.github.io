@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: post
 title: "Testing All The Features"
 date: 2015-10-13
 ---
