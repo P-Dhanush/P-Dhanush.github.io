@@ -31,7 +31,7 @@ Sometimes you need to organize information into lists.
 
 Yes, you can absolutely add an image. First, upload the image file to your repository (a good practice is to create an `assets/images` folder). Then, link to it like this:
 
-![A descriptive caption for my sample image](./assets/images/firstss.png)
+![A descriptive caption for my sample image](/assets/images/firstss.png)
 
 ## Displaying Code Snippets
 
@@ -49,3 +49,4 @@ greet("World")
 
 ## Embedding an Interactive Datawrapper Chart
 
+<iframe title="Some repricing info'" aria-label="Map" id="datawrapper-chart-epn3b" src="https://datawrapper.dwcdn.net/epn3b/2/" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="435" data-external="1"></iframe>
