@@ -1,0 +1,161 @@
+---
+layout: default
+title: Blog
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ page.title }} | {{ site.title }}</title>
+  <style>
+    :root { --fg:#111; --muted:#666; --bg:#fff; --accent:#0a7; --chip:#eef; --chipfg:#045; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color:var(--fg); background:var(--bg); margin:0; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 2rem 1rem; }
+    header.hero { display:flex; flex-wrap:wrap; align-items:center; gap: .75rem 1.25rem; margin-bottom:1.5rem; }
+    header.hero h1 { font-size: 2rem; margin: 0; }
+    nav a { text-decoration:none; color:var(--fg); margin-right:1rem; padding:.4rem .6rem; border-radius:.6rem; }
+    nav a:hover { background:#f3f3f3; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:.75rem; align-items:center; background:#f8f8f8; border:1px solid #eee; border-radius:12px; padding:.75rem; }
+    .toolbar input[type="search"]{ flex:1 1 260px; padding:.6rem .8rem; border:1px solid #ddd; border-radius:10px; font-size:1rem; }
+    .toolbar select{ padding:.55rem .8rem; border:1px solid #ddd; border-radius:10px; background:#fff; }
+    .count { color:var(--muted); font-size:.95rem; margin-left:auto; }
+    ul.posts { list-style:none; margin:1.25rem 0 0; padding:0; }
+    .card { border:1px solid #eee; border-radius:16px; padding:1.1rem 1.25rem; margin-bottom:1rem; transition: box-shadow .15s ease, border-color .15s ease; }
+    .card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.06); border-color:#e2e2e2; }
+    .card h2 { font-size:1.25rem; margin:.1rem 0 .35rem; }
+    .meta { color:var(--muted); font-size:.9rem; display:flex; gap:.75rem; flex-wrap:wrap; }
+    .excerpt { margin:.6rem 0 0; color: #2a2a2a; }
+    .chips { margin-top:.5rem; display:flex; flex-wrap:wrap; gap:.4rem; }
+    .chip { font-size:.8rem; background:var(--chip); color:var(--chipfg); padding:.18rem .5rem; border-radius:999px; cursor:pointer; user-select:none; }
+    .chip.active { background:var(--accent); color:white; }
+    .empty { text-align:center; color:var(--muted); padding:2rem 0; }
+    footer { margin-top:2rem; color:var(--muted); font-size:.9rem; }
+    @media (max-width:560px){ header.hero { align-items:flex-start } .count{order:3;width:100%;text-align:right} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- Hero / Nav -->
+    <header class="hero">
+      <h1>{{ site.title | default: "Blog" }}</h1>
+      <nav>
+        <a href="{{ '/' | relative_url }}">Home</a>
+        <a href="{{ '/about/' | relative_url }}">About</a>
+        <a href="{{ '/projects/' | relative_url }}">Projects</a>
+        <a href="{{ '/feed.xml' | relative_url }}">RSS</a>
+      </nav>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <input id="q" type="search" placeholder="Search posts (title, excerpt, tags)…" aria-label="Search" />
+      <select id="category" aria-label="Filter by category">
+        <option value="">All categories</option>
+        {% assign all_cats = site.posts | map: 'categories' | join: ',' | split: ',' | uniq | sort %}
+        {% for cat in all_cats %}
+          {% unless cat == "" %}
+          <option value="{{ cat | escape }}">{{ cat }}</option>
+          {% endunless %}
+        {% endfor %}
+      </select>
+      <div class="count"><span id="count"></span></div>
+    </div>
+
+    <!-- Posts -->
+    <ul id="postList" class="posts">
+      {% assign posts_sorted = site.posts | sort: 'date' | reverse %}
+      {% for post in posts_sorted %}
+      <li class="card"
+          data-title="{{ post.title | downcase | escape }}"
+          data-excerpt="{{ post.excerpt | strip_html | strip_newlines | downcase | escape }}"
+          data-categories="{{ post.categories | join:'|' | downcase | escape }}"
+          data-tags="{{ post.tags | join:'|' | downcase | escape }}">
+        <h2><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h2>
+        <div class="meta">
+          <span>{{ post.date | date: "%Y-%m-%d" }}</span>
+          {% if post.categories and post.categories.size > 0 %}
+            <span>In: {{ post.categories | join: ', ' }}</span>
+          {% endif %}
+          {% if post.reading_time %}
+            <span>~{{ post.reading_time }} min</span>
+          {% endif %}
+        </div>
+        <p class="excerpt">{{ post.excerpt | strip_html | strip_newlines | truncate: 220 }}</p>
+        {% if post.tags and post.tags.size > 0 %}
+        <div class="chips">
+          {% for t in post.tags %}
+            <span class="chip" data-chip="{{ t | downcase | escape }}">{{ t }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+
+    <div id="empty" class="empty" style="display:none;">No posts match your filters.</div>
+
+    <footer>
+      <p>&copy; {{ site.time | date: '%Y' }} {{ site.author | default: site.title | default: "Me" }} · Powered by Jekyll on GitHub Pages.</p>
+    </footer>
+  </div>
+
+  <script>
+    (function(){
+      const q = document.getElementById('q');
+      const category = document.getElementById('category');
+      const list = document.getElementById('postList');
+      const cards = Array.from(list.querySelectorAll('.card'));
+      const count = document.getElementById('count');
+      const empty = document.getElementById('empty');
+
+      let tagFilter = ""; // set when a tag chip is clicked
+
+      // Delegate chip clicks
+      list.addEventListener('click', (e) => {
+        const el = e.target.closest('.chip');
+        if (!el) return;
+        const t = (el.dataset.chip || "").toLowerCase();
+        // toggle
+        tagFilter = (tagFilter === t) ? "" : t;
+        // update chip UI
+        list.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', (c.dataset.chip||"").toLowerCase() === tagFilter && tagFilter !== ""));
+        apply();
+      });
+
+      // Text & category inputs
+      q.addEventListener('input', apply);
+      category.addEventListener('change', apply);
+
+      function apply(){
+        const needle = (q.value || "").trim().toLowerCase();
+        const cat = (category.value || "").toLowerCase();
+
+        let visible = 0;
+        cards.forEach(card => {
+          const title = card.dataset.title;
+          const excerpt = card.dataset.excerpt;
+          const cats = card.dataset.categories || "";
+          const tags = card.dataset.tags || "";
+
+          const textOk = !needle || title.includes(needle) || excerpt.includes(needle) || tags.includes(needle);
+          const catOk = !cat || cats.split('|').includes(cat);
+          const tagOk = !tagFilter || tags.split('|').includes(tagFilter);
+
+          const show = textOk && catOk && tagOk;
+          card.style.display = show ? "" : "none";
+          if (show) visible++;
+        });
+
+        count.textContent = visible + " post" + (visible===1 ? "" : "s");
+        empty.style.display = visible ? "none" : "";
+      }
+
+      // initial
+      apply();
+    })();
+  </script>
+</body>
+</html>
