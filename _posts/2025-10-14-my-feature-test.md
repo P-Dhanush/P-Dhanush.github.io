@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Testing All The Features"
-date: 2025-10-13
+date: 2015-10-13
 ---
 
 # My First Post: A Feature Test
@@ -29,7 +29,7 @@ Sometimes you need to organize information into lists.
 
 Yes, you can absolutely add an image. First, upload the image file to your repository (a good practice is to create an `assets/images` folder). Then, link to it like this:
 
-![A descriptive caption for my sample image](./assets/images/Screenshot2025-10-15091938.png)
+![A descriptive caption for my sample image](./assets/images/firstss.png)
 
 ## Displaying Code Snippets
 
