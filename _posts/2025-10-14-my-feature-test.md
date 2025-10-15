@@ -47,4 +47,3 @@ greet("World")
 
 ## Embedding an Interactive Datawrapper Chart
 
-<iframe title="Share of people who say the ideal number of children for a family to have is 'three or more'" aria-label="Map" id="datawrapper-chart-epn3b" src="https://datawrapper.dwcdn.net/epn3b/2/" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="435" data-external="1"></iframe>
