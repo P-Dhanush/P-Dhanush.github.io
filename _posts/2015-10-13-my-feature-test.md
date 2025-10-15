@@ -2,6 +2,8 @@
 layout: post
 title: "Testing All The Features"
 date: 2015-10-13
+categories: [notes]      # or a single string: category: notes
+tags: [jekyll, howto]
 ---
 
 # My First Post: A Feature Test
