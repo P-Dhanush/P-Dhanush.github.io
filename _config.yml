@@ -1,6 +1,14 @@
+# Site settings
+repository: "P-Dhanush/P-Dhanush.github.io"
+url: "https://p-dhanush.github.io"
+baseurl: ""
+
 # Use remote_theme (recommended for GitHub Pages)
 remote_theme: "mmistakes/minimal-mistakes@4.26.2"
 minimal_mistakes_skin: "dark"
+
+# Build settings
+destination: docs
 
 # Sass/SCSS settings
 sass:
