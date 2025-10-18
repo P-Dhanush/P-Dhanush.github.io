@@ -1,18 +1,18 @@
 /* Override theme default widths */
-$max-width: 1900px !default;              // Increase overall page width
-$content-width: 1300px !default;          // Increase main content width
-$right-sidebar-width: 400px !default;     // TOC width
-$gutter: 20px !default;
+// $max-width: 1900px !default;              // Increase overall page width
+// $content-width: 1300px !default;          // Increase main content width
+// $right-sidebar-width: 400px !default;     // TOC width
+// $gutter: 20px !default;
 
-/* Ensure containers use full width */
-.page,
-.masthead__inner-wrap,
-.initial-content,
-.page__inner-wrap {
-    max-width: $max-width;
-    margin-left: auto;
-    margin-right: auto;
-}
+// /* Ensure containers use full width */
+// .page,
+// .masthead__inner-wrap,
+// .initial-content,
+// .page__inner-wrap {
+//     max-width: $max-width;
+//     margin-left: auto;
+//     margin-right: auto;
+// }
 
 // /* Desktop: switch to a 2-column grid */
 // @media (min-width: 1200px) {
