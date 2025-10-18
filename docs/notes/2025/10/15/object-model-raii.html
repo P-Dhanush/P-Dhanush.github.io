@@ -1,0 +1,414 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.26.2 by Michael Rose
+  Copyright 2013-2024 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>C++ Object Model &amp; RAII (Ownership, Lifetime, Memory) - P-Dhanush</title>
+<meta name="description" content="">
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="P-Dhanush">
+<meta property="og:title" content="C++ Object Model &amp; RAII (Ownership, Lifetime, Memory)">
+<meta property="og:url" content="https://p-dhanush.github.io/notes/2025/10/15/object-model-raii.html">
+
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2025-10-15T10:30:00+05:30">
+
+
+
+
+
+
+<link rel="canonical" href="https://p-dhanush.github.io/notes/2025/10/15/object-model-raii.html">
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+
+  <link href="/feed.xml" type="application/atom+xml" rel="alternate" title="P-Dhanush Feed">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script type="text/javascript">
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+  
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css"></noscript>
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single wide">
+    <nav class="skip-links">
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          P-Dhanush
+          
+        </a>
+        <ul class="visible-links"></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+  
+    
+      
+      
+      
+      
+    
+    
+      <nav class="nav__list">
+  
+  <input id="ac-toc" name="accordion-toc" type="checkbox" />
+  <label for="ac-toc">Toggle Menu</label>
+  <ul class="nav__items">
+    
+      
+      
+        <li>
+          
+            <span class="nav__sub-title">C++</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/pointers_and-references/">Pointers & References</a></li>
+            
+              <li><a href="/notes/classes/">Classes</a></li>
+            
+              <li><a href="/notes/structs/">Structs</a></li>
+            
+          </ul>
+          
+        </li>
+      
+        <li>
+          
+            <span class="nav__sub-title">Market Microstructure / HFT</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/column-store-architecture/">Crypto L2 Analysis: Part 1 — Column Store Architecture</a></li>
+            
+              <li><a href="/notes/okx-to-colstore/">OKX NDJSON → Colstore Ingest</a></li>
+            
+          </ul>
+          
+        </li>
+      
+        <li>
+          
+            <span class="nav__sub-title">Yield Curves / Rates</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/usd-sofr-bootstrapping/">USD SOFR Bootstrapping — Guide</a></li>
+            
+              <li><a href="/notes/dv01-krd-heatmaps/">DV01 & Key-Rate Heatmaps</a></li>
+            
+          </ul>
+          
+        </li>
+      
+    
+  </ul>
+</nav>
+
+    
+  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="C++ Object Model &amp; RAII (Ownership, Lifetime, Memory)">
+    <meta itemprop="description" content="">
+    <meta itemprop="datePublished" content="2025-10-15T10:30:00+05:30">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">
+            <a href="https://p-dhanush.github.io/notes/2025/10/15/object-model-raii.html" itemprop="url">C++ Object Model &amp; RAII (Ownership, Lifetime, Memory)
+</a>
+          </h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title"><i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu"><li><a href="#1-types--layout">1. Types &amp; Layout</a><ul><li><a href="#11-classes--structs">1.1 Classes &amp; Structs</a></li><li><a href="#12-data-members-access-control-standard-layout-vs-trivial">1.2 Data members, access-control, standard layout vs trivial</a></li><li><a href="#12-data-members-access-control-standard-layout-vs-trivial-1">1.2 Data Members, Access Control, Standard-Layout vs Trivial</a><ul><li><a href="#access-control-publicprotectedprivate">Access Control (public/protected/private)</a></li></ul></li><li><a href="#13-static-members-type-level-vs-non-static-object-level">1.3 static members (type-level) vs non-static (object-level)</a></li></ul></li><li><a href="#2-object-model">2. Object Model</a></li><li><a href="#3-construction--destruction-raii-core">3. Construction &amp; Destruction (RAII Core)</a></li><li><a href="#4-initialization-patterns">4. Initialization patterns</a></li><li><a href="#5-ownership-buffers">5. Ownership buffers</a></li><li><a href="#6-resource-management-raii-in-practice">6. Resource Management (RAII in practice)</a></li><li><a href="#7-storage-duration--lifetime-pitfalls">7. Storage duration &amp; Lifetime pitfalls</a></li></ul>
+            </nav>
+          </aside>
+        
+        <p>#</p>
+
+<ul id="markdown-toc">
+  <li><a href="#1-types--layout" id="markdown-toc-1-types--layout">1. Types &amp; Layout</a>    <ul>
+      <li><a href="#11-classes--structs" id="markdown-toc-11-classes--structs">1.1 Classes &amp; Structs</a></li>
+      <li><a href="#12-data-members-access-control-standard-layout-vs-trivial" id="markdown-toc-12-data-members-access-control-standard-layout-vs-trivial">1.2 Data members, access-control, standard layout vs trivial</a></li>
+      <li><a href="#12-data-members-access-control-standard-layout-vs-trivial-1" id="markdown-toc-12-data-members-access-control-standard-layout-vs-trivial-1">1.2 Data Members, Access Control, Standard-Layout vs Trivial</a>        <ul>
+          <li><a href="#access-control-publicprotectedprivate" id="markdown-toc-access-control-publicprotectedprivate">Access Control (public/protected/private)</a></li>
+        </ul>
+      </li>
+      <li><a href="#13-static-members-type-level-vs-non-static-object-level" id="markdown-toc-13-static-members-type-level-vs-non-static-object-level">1.3 <code class="language-plaintext highlighter-rouge">static</code> members (type-level) vs non-static (object-level)</a></li>
+    </ul>
+  </li>
+  <li><a href="#2-object-model" id="markdown-toc-2-object-model">2. Object Model</a></li>
+  <li><a href="#3-construction--destruction-raii-core" id="markdown-toc-3-construction--destruction-raii-core">3. Construction &amp; Destruction (RAII Core)</a></li>
+  <li><a href="#4-initialization-patterns" id="markdown-toc-4-initialization-patterns">4. Initialization patterns</a></li>
+  <li><a href="#5-ownership-buffers" id="markdown-toc-5-ownership-buffers">5. Ownership buffers</a></li>
+  <li><a href="#6-resource-management-raii-in-practice" id="markdown-toc-6-resource-management-raii-in-practice">6. Resource Management (RAII in practice)</a></li>
+  <li><a href="#7-storage-duration--lifetime-pitfalls" id="markdown-toc-7-storage-duration--lifetime-pitfalls">7. Storage duration &amp; Lifetime pitfalls</a></li>
+</ul>
+
+<hr />
+
+<h2 id="1-types--layout">1. Types &amp; Layout</h2>
+<h3 id="11-classes--structs">1.1 Classes &amp; Structs</h3>
+<p><em>What is a type (in this context)?</em>
+A type describes a set of values and the operations valid on them. For user-defined types (classes/structs), it also fixes a memory layout for each object: the order, alignment, and presence of data members, plus what functions can act on those objects.</p>
+
+<p><em>Classes vs Structs (quick)</em>
+Refer classes here, and structs here.</p>
+
+<p>Same thing in C++—the only difference is default access:
+struct: members are public by default
+class: members are private by default</p>
+
+<p><em>Objects &amp; Identity</em>
+An object is a concrete instance of a type, stored somewhere (stack/heap/static). Each object gets its own storage for non-static (will discuss soon) data members, so different objects can hold different values.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+</code></pre></div></div>
+
+<p><strong>The <code class="language-plaintext highlighter-rouge">this</code> pointer (how member functions know “which one?”)</strong>
+Non-static member functions receive a hidden first parameter: <code class="language-plaintext highlighter-rouge">this</code>, a pointer to the specific object being used. This help in ‘pointing’ to and identifying that particular instance of a type. So:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="nc">C</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">value</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  
+  <span class="c1">// 1) member: operates on *this* object</span>
+  <span class="kt">void</span> <span class="n">bump</span><span class="p">(</span><span class="kt">int</span> <span class="n">by</span><span class="p">)</span> <span class="p">{</span>          <span class="c1">// implicit C* this</span>
+    <span class="n">value</span> <span class="o">+=</span> <span class="n">by</span><span class="p">;</span>               <span class="c1">// means this-&gt;value += by;</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="n">C</span> <span class="n">a</span><span class="p">;</span>
+<span class="n">a</span><span class="p">.</span><span class="n">bump</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>          <span class="c1">// a's value in particular increases by 3 from 0 to 3.</span>
+</code></pre></div></div>
+<p>Mental equivalent of what’s going on with <code class="language-plaintext highlighter-rouge">this</code> working implicitly -&gt;</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">//Conceptual Translation</span>
+<span class="kt">void</span> <span class="nf">bump</span><span class="p">(</span><span class="n">C</span><span class="o">*</span> <span class="n">this_</span><span class="p">,</span> <span class="kt">int</span> <span class="n">by</span><span class="p">)</span> <span class="p">{</span> <span class="n">this_</span><span class="o">-&gt;</span><span class="n">value</span> <span class="o">+=</span> <span class="n">by</span><span class="p">;</span> <span class="p">}</span> <span class="c1">// implicitly pointing to a location for 'a' in particular.</span>
+</code></pre></div></div>
+<p><strong>Static vs non-static members (preview)</strong></p>
+<ul>
+  <li>Non-static data: per-object storage (affects sizeof(C)), accessed via this.</li>
+  <li>Static data: one per type (does not affect sizeof(C)), lives in static storage.</li>
+  <li>Static functions: belong to the type, have no this, great for factories/utilities.</li>
+</ul>
+
+<h3 id="12-data-members-access-control-standard-layout-vs-trivial">1.2 Data members, access-control, standard layout vs trivial</h3>
+<p>Access control</p>
+<ul>
+  <li>public → visible to everyone</li>
+  <li>protected → visible to derived classes</li>
+  <li>private → internal to the type
+Use access to enforce invariants (e.g., keep representation valid).</li>
+</ul>
+
+<h3 id="12-data-members-access-control-standard-layout-vs-trivial-1">1.2 Data Members, Access Control, Standard-Layout vs Trivial</h3>
+
+<p><strong>What this section covers:</strong> where member data lives, who can see it, how layout is formed in memory, and what “standard-layout” and “trivial” actually mean (modern replacement for the old “POD” idea).</p>
+
+<hr />
+
+<h4 id="access-control-publicprotectedprivate">Access Control (public/protected/private)</h4>
+
+<p>Use access to enforce invariants and express intent.</p>
+
+<p>```cpp
+struct BankAccount {
+private:
+  double balance_ = 0.0;        // hidden; callers can’t break invariants directly
+public:
+  void deposit(double x) { if (x &gt;= 0) balance_ += x; }
+  double balance() const { return balance_; }
+protected:
+  void audit_adjust(double x) { balance_ += x; } // accessible to derived types
+};</p>
+
+<h3 id="13-static-members-type-level-vs-non-static-object-level">1.3 <code class="language-plaintext highlighter-rouge">static</code> members (type-level) vs non-static (object-level)</h3>
+
+<h2 id="2-object-model">2. Object Model</h2>
+
+<h2 id="3-construction--destruction-raii-core">3. Construction &amp; Destruction (RAII Core)</h2>
+
+<h2 id="4-initialization-patterns">4. Initialization patterns</h2>
+
+<h2 id="5-ownership-buffers">5. Ownership buffers</h2>
+
+<h2 id="6-resource-management-raii-in-practice">6. Resource Management (RAII in practice)</h2>
+
+<h2 id="7-storage-duration--lifetime-pitfalls">7. Storage duration &amp; Lifetime pitfalls</h2>
+
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+
+
+        
+
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time class="dt-published" datetime="2025-10-15T10:30:00+05:30">October 15, 2025</time></p>
+
+      </footer>
+
+      
+
+      
+  <nav class="pagination">
+    
+      <a href="/notes/2025/10/15/cpplearnings.html" class="pagination--pager" title="CPP Learnings
+">Previous</a>
+    
+    
+      <a href="/notes/2025/10/15/WSLCheatsheet.html" class="pagination--pager" title="WSL Cheatsheet
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+      
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+
+    
+
+    
+      <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+    
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2025 <a href="https://p-dhanush.github.io">P-Dhanush</a>. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+
+
+
+
+
+  </body>
+</html>

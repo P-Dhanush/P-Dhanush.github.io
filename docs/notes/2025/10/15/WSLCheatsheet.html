@@ -1,0 +1,668 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.26.2 by Michael Rose
+  Copyright 2013-2024 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>WSL Cheatsheet - P-Dhanush</title>
+<meta name="description" content="A practical, extensible guide to WSL: fundamentals, Bash vs PowerShell, filesystems, networking, performance, daily recipes, and troubleshooting.">
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="P-Dhanush">
+<meta property="og:title" content="WSL Cheatsheet">
+<meta property="og:url" content="https://p-dhanush.github.io/notes/2025/10/15/WSLCheatsheet.html">
+
+
+  <meta property="og:description" content="A practical, extensible guide to WSL: fundamentals, Bash vs PowerShell, filesystems, networking, performance, daily recipes, and troubleshooting.">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2025-10-15T10:30:00+05:30">
+
+
+
+
+
+
+<link rel="canonical" href="https://p-dhanush.github.io/notes/2025/10/15/WSLCheatsheet.html">
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+
+  <link href="/feed.xml" type="application/atom+xml" rel="alternate" title="P-Dhanush Feed">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script type="text/javascript">
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+  
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css"></noscript>
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single single">
+    <nav class="skip-links">
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          P-Dhanush
+          
+        </a>
+        <ul class="visible-links"></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+  
+    
+      
+      
+      
+      
+    
+    
+      <nav class="nav__list">
+  
+  <input id="ac-toc" name="accordion-toc" type="checkbox" />
+  <label for="ac-toc">Toggle Menu</label>
+  <ul class="nav__items">
+    
+      
+      
+        <li>
+          
+            <span class="nav__sub-title">C++</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/pointers_and-references/">Pointers & References</a></li>
+            
+              <li><a href="/notes/classes/">Classes</a></li>
+            
+              <li><a href="/notes/structs/">Structs</a></li>
+            
+          </ul>
+          
+        </li>
+      
+        <li>
+          
+            <span class="nav__sub-title">Market Microstructure / HFT</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/column-store-architecture/">Crypto L2 Analysis: Part 1 — Column Store Architecture</a></li>
+            
+              <li><a href="/notes/okx-to-colstore/">OKX NDJSON → Colstore Ingest</a></li>
+            
+          </ul>
+          
+        </li>
+      
+        <li>
+          
+            <span class="nav__sub-title">Yield Curves / Rates</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/usd-sofr-bootstrapping/">USD SOFR Bootstrapping — Guide</a></li>
+            
+              <li><a href="/notes/dv01-krd-heatmaps/">DV01 & Key-Rate Heatmaps</a></li>
+            
+          </ul>
+          
+        </li>
+      
+    
+  </ul>
+</nav>
+
+    
+  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="WSL Cheatsheet">
+    <meta itemprop="description" content="A practical, extensible guide to WSL: fundamentals, Bash vs PowerShell, filesystems, networking, performance, daily recipes, and troubleshooting.">
+    <meta itemprop="datePublished" content="2025-10-15T10:30:00+05:30">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">
+            <a href="https://p-dhanush.github.io/notes/2025/10/15/WSLCheatsheet.html" itemprop="url">WSL Cheatsheet
+</a>
+          </h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title"><i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu"><li><a href="#wsl-cheatsheet--from-first-principles-to-power-user">WSL Cheatsheet — From First Principles to Power User</a><ul><li><a href="#1-first-principles">1. First Principles</a><ul><li><a href="#11-os-kernel-userspace">1.1 OS, Kernel, Userspace</a></li><li><a href="#12-where-wsl-fits">1.2 Where WSL fits</a></li><li><a href="#13-wsl1-vs-wsl2-quick-compare">1.3 WSL1 vs WSL2 (quick compare)</a></li></ul></li><li><a href="#2-shells--environments">2. Shells &amp; Environments</a><ul><li><a href="#21-bash-linux-vs-powershell-windows">2.1 Bash (Linux) vs PowerShell (Windows)</a></li><li><a href="#22-profiles">2.2 Profiles</a></li><li><a href="#23-environment-variables">2.3 Environment Variables</a></li></ul></li><li><a href="#3-filesystems--paths">3. Filesystems &amp; Paths</a><ul><li><a href="#31-where-things-live">3.1 Where things live</a><ul><li><a href="#the-short-map-of-paths">The short map of paths</a></li><li><a href="#how-to-see-where-we-are-and-what-its-mounted-on">How to see where we are and what it’s mounted on</a></li><li><a href="#shifting-from-mnt-to-using-code-id-used-previously--">Shifting from /mnt/ to ~(using code I’d used previously) -&gt;</a></li></ul></li><li><a href="#32-performance--file-watching">3.2 Performance &amp; file-watching</a></li></ul></li><li><a href="#4-processes-networks-interop">4. Processes, Networks, Interop</a><ul><li><a href="#41-run-windows-apps-from-wsl-and-vice-versa">4.1 Run Windows apps from WSL and vice versa</a></li><li><a href="#42-networking-basics">4.2 Networking Basics</a></li></ul></li><li><a href="#5-package-managers--toolchains">5. Package Managers &amp; Toolchains</a><ul><li><a href="#51-apt-vs-wingetchoco">5.1 apt vs winget/choco</a></li><li><a href="#52-common-stacks-quick-installs">5.2 Common stacks (quick installs)</a></li></ul></li><li><a href="#6-git--projects">6. Git &amp; Projects</a><ul><li><a href="#61-where-to-clone">6.1 Where to clone</a></li><li><a href="#62-useful-git-setup">6.2 Useful Git setup</a></li></ul></li><li><a href="#7-troubleshooting">7. Troubleshooting</a></li></ul></li></ul>
+            </nav>
+          </aside>
+        
+        <h1 id="wsl-cheatsheet--from-first-principles-to-power-user">WSL Cheatsheet — From First Principles to Power User</h1>
+
+<ul id="markdown-toc">
+  <li><a href="#wsl-cheatsheet--from-first-principles-to-power-user" id="markdown-toc-wsl-cheatsheet--from-first-principles-to-power-user">WSL Cheatsheet — From First Principles to Power User</a>    <ul>
+      <li><a href="#1-first-principles" id="markdown-toc-1-first-principles">1. First Principles</a>        <ul>
+          <li><a href="#11-os-kernel-userspace" id="markdown-toc-11-os-kernel-userspace">1.1 OS, Kernel, Userspace</a></li>
+          <li><a href="#12-where-wsl-fits" id="markdown-toc-12-where-wsl-fits">1.2 Where WSL fits</a></li>
+          <li><a href="#13-wsl1-vs-wsl2-quick-compare" id="markdown-toc-13-wsl1-vs-wsl2-quick-compare">1.3 WSL1 vs WSL2 (quick compare)</a></li>
+        </ul>
+      </li>
+      <li><a href="#2-shells--environments" id="markdown-toc-2-shells--environments">2. Shells &amp; Environments</a>        <ul>
+          <li><a href="#21-bash-linux-vs-powershell-windows" id="markdown-toc-21-bash-linux-vs-powershell-windows">2.1 Bash (Linux) vs PowerShell (Windows)</a></li>
+          <li><a href="#22-profiles" id="markdown-toc-22-profiles">2.2 Profiles</a></li>
+          <li><a href="#23-environment-variables" id="markdown-toc-23-environment-variables">2.3 Environment Variables</a></li>
+        </ul>
+      </li>
+      <li><a href="#3-filesystems--paths" id="markdown-toc-3-filesystems--paths">3. Filesystems &amp; Paths</a>        <ul>
+          <li><a href="#31-where-things-live" id="markdown-toc-31-where-things-live">3.1 Where things live</a>            <ul>
+              <li><a href="#the-short-map-of-paths" id="markdown-toc-the-short-map-of-paths">The short map of paths</a></li>
+              <li><a href="#how-to-see-where-we-are-and-what-its-mounted-on" id="markdown-toc-how-to-see-where-we-are-and-what-its-mounted-on">How to see where we are and what it’s mounted on</a></li>
+              <li><a href="#shifting-from-mnt-to-using-code-id-used-previously--" id="markdown-toc-shifting-from-mnt-to-using-code-id-used-previously--">Shifting from <code class="language-plaintext highlighter-rouge">/mnt/</code> to <code class="language-plaintext highlighter-rouge">~</code>(using code I’d used previously) -&gt;</a></li>
+            </ul>
+          </li>
+          <li><a href="#32-performance--file-watching" id="markdown-toc-32-performance--file-watching">3.2 Performance &amp; file-watching</a></li>
+        </ul>
+      </li>
+      <li><a href="#4-processes-networks-interop" id="markdown-toc-4-processes-networks-interop">4. Processes, Networks, Interop</a>        <ul>
+          <li><a href="#41-run-windows-apps-from-wsl-and-vice-versa" id="markdown-toc-41-run-windows-apps-from-wsl-and-vice-versa">4.1 Run Windows apps from WSL and vice versa</a></li>
+          <li><a href="#42-networking-basics" id="markdown-toc-42-networking-basics">4.2 Networking Basics</a></li>
+        </ul>
+      </li>
+      <li><a href="#5-package-managers--toolchains" id="markdown-toc-5-package-managers--toolchains">5. Package Managers &amp; Toolchains</a>        <ul>
+          <li><a href="#51-apt-vs-wingetchoco" id="markdown-toc-51-apt-vs-wingetchoco">5.1 apt vs winget/choco</a></li>
+          <li><a href="#52-common-stacks-quick-installs" id="markdown-toc-52-common-stacks-quick-installs">5.2 Common stacks (quick installs)</a></li>
+        </ul>
+      </li>
+      <li><a href="#6-git--projects" id="markdown-toc-6-git--projects">6. Git &amp; Projects</a>        <ul>
+          <li><a href="#61-where-to-clone" id="markdown-toc-61-where-to-clone">6.1 Where to clone</a></li>
+          <li><a href="#62-useful-git-setup" id="markdown-toc-62-useful-git-setup">6.2 Useful Git setup</a></li>
+        </ul>
+      </li>
+      <li><a href="#7-troubleshooting" id="markdown-toc-7-troubleshooting">7. Troubleshooting</a></li>
+    </ul>
+  </li>
+</ul>
+
+<hr />
+
+<h2 id="1-first-principles">1. First Principles</h2>
+
+<h3 id="11-os-kernel-userspace">1.1 OS, Kernel, Userspace</h3>
+<ul>
+  <li><strong>Kernel</strong>: hardware, processes, memory, filesystems, networking.</li>
+  <li><strong>Userspace</strong>: shells (Bash/PowerShell), tools, libraries, apps.</li>
+  <li><strong>Windows vs Linux</strong>: different kernels → different syscalls &amp; tools.</li>
+</ul>
+
+<h3 id="12-where-wsl-fits">1.2 Where WSL fits</h3>
+<ul>
+  <li><strong>WSL</strong> lets you run a <strong>Linux userspace</strong> on Windows.</li>
+  <li><strong>WSL1</strong>: translates Linux syscalls to Windows kernel calls.</li>
+  <li><strong>WSL2</strong>: runs a <strong>real Linux kernel</strong> in a lightweight VM (higher compatibility/perf).</li>
+</ul>
+
+<h3 id="13-wsl1-vs-wsl2-quick-compare">1.3 WSL1 vs WSL2 (quick compare)</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Aspect</th>
+      <th>WSL1</th>
+      <th>WSL2 (recommended)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Kernel</td>
+      <td>Translation layer</td>
+      <td>Real Linux kernel (managed VM)</td>
+    </tr>
+    <tr>
+      <td>FS perf in <code class="language-plaintext highlighter-rouge">~/</code></td>
+      <td>N/A</td>
+      <td><strong>Fast</strong></td>
+    </tr>
+    <tr>
+      <td>FS perf in <code class="language-plaintext highlighter-rouge">/mnt/*</code></td>
+      <td>Generally OK</td>
+      <td><strong>Slower</strong>; use for access, not hot dev</td>
+    </tr>
+    <tr>
+      <td>File watching</td>
+      <td>Bridged</td>
+      <td>Native in <code class="language-plaintext highlighter-rouge">~/</code>; <strong>flaky on <code class="language-plaintext highlighter-rouge">/mnt/*</code></strong></td>
+    </tr>
+    <tr>
+      <td>Networking</td>
+      <td>Shares host IP</td>
+      <td>NAT/virtualized (different IP)</td>
+    </tr>
+    <tr>
+      <td>Compatibility</td>
+      <td>Good</td>
+      <td><strong>Very high</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Rule of thumb:</strong> keep repos in <strong><code class="language-plaintext highlighter-rouge">~/</code></strong>; use <code class="language-plaintext highlighter-rouge">/mnt/c|d|e</code> only to <em>access</em> Windows files.</p>
+
+<hr />
+
+<h2 id="2-shells--environments">2. Shells &amp; Environments</h2>
+
+<h3 id="21-bash-linux-vs-powershell-windows">2.1 Bash (Linux) vs PowerShell (Windows)</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Topic</th>
+      <th>Bash</th>
+      <th>PowerShell</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Prompt</td>
+      <td><code class="language-plaintext highlighter-rouge">$</code></td>
+      <td><code class="language-plaintext highlighter-rouge">PS C:\&gt;</code></td>
+    </tr>
+    <tr>
+      <td>Scripting</td>
+      <td><code class="language-plaintext highlighter-rouge">#!/usr/bin/env bash</code></td>
+      <td><code class="language-plaintext highlighter-rouge">.ps1</code> (PowerShell syntax)</td>
+    </tr>
+    <tr>
+      <td>Set env var</td>
+      <td><code class="language-plaintext highlighter-rouge">FOO=bar cmd</code> or <code class="language-plaintext highlighter-rouge">export FOO=bar</code></td>
+      <td><code class="language-plaintext highlighter-rouge">$env:FOO='bar'; cmd</code></td>
+    </tr>
+    <tr>
+      <td>Paths</td>
+      <td><code class="language-plaintext highlighter-rouge">/home/user</code></td>
+      <td><code class="language-plaintext highlighter-rouge">C:\Users\User</code></td>
+    </tr>
+    <tr>
+      <td>Pipe model</td>
+      <td>Text streams</td>
+      <td>.NET objects</td>
+    </tr>
+  </tbody>
+</table>
+
+<blockquote>
+  <p>Use <strong>Bash in WSL</strong> for Linux tools; <strong>PowerShell</strong> for Windows automation.</p>
+</blockquote>
+
+<h3 id="22-profiles">2.2 Profiles</h3>
+<ul>
+  <li><strong><code class="language-plaintext highlighter-rouge">~/.bashrc</code></strong> (WSL/Bash): runs on interactive shells. Put aliases/exports here.</li>
+  <li><strong><code class="language-plaintext highlighter-rouge">~/.profile</code></strong>: login shell config (runs once per login).</li>
+  <li><strong>PowerShell profile</strong>: <code class="language-plaintext highlighter-rouge">echo $PROFILE</code> shows the path; put functions/aliases there.</li>
+</ul>
+
+<p><strong>Common Bash additions:</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># ~/.bashrc</span>
+<span class="nb">export </span><span class="nv">GEM_HOME</span><span class="o">=</span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/.gems"</span>
+<span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/.gems/bin:</span><span class="nv">$PATH</span><span class="s2">"</span>
+<span class="nb">alias </span><span class="nv">ll</span><span class="o">=</span><span class="s1">'ls -lah'</span>
+<span class="nb">alias </span><span class="nv">gs</span><span class="o">=</span><span class="s1">'git status -sb'</span>
+<span class="nb">alias </span><span class="nv">gp</span><span class="o">=</span><span class="s1">'git pull --rebase'</span>
+<span class="nb">alias </span><span class="nv">jserve</span><span class="o">=</span><span class="s1">'bundle exec jekyll serve --livereload --drafts --future --force_polling'</span>
+</code></pre></div></div>
+
+<h3 id="23-environment-variables">2.3 Environment Variables</h3>
+<ul>
+  <li>Temporary (one command): <code class="language-plaintext highlighter-rouge">FOO=1 cmd</code></li>
+  <li>Session-wide: <code class="language-plaintext highlighter-rouge">export FOO=1</code></li>
+  <li>Persistent: put in <code class="language-plaintext highlighter-rouge">~/.bashrc</code> then <code class="language-plaintext highlighter-rouge">source ~/.bashrc</code></li>
+</ul>
+
+<h2 id="3-filesystems--paths">3. Filesystems &amp; Paths</h2>
+
+<h3 id="31-where-things-live">3.1 Where things live</h3>
+
+<p>On a real Linux machine, the root of OS <code class="language-plaintext highlighter-rouge">/</code> is on a Linux-formatted filesystem, (ext4, xfs, btrfs, etc.) sitting on a disk/partition and the home directory is typically on:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/home/&lt;linux-user&gt;     <span class="c"># shorthand: ~/</span>
+</code></pre></div></div>
+
+<p>In WSL2, we run a real linux kernel inside a lighweight virtual machine. All ilnux files including <code class="language-plaintext highlighter-rouge">/home/&lt;linux-user&gt;</code> resides on a virtual disk on windows. The location is generally on a ext4.vhdx at:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:<span class="se">\U</span>sers<span class="se">\&lt;</span>WindowsUser&gt;<span class="se">\A</span>ppData<span class="se">\L</span>ocal<span class="se">\P</span>ackages<span class="se">\&lt;</span>YourDistroPackage&gt;<span class="se">\L</span>ocalState<span class="se">\e</span>xt4.vhdx
+</code></pre></div></div>
+<ul>
+  <li><strong>But don’t access or change this file directly!</strong></li>
+  <li>When we browse <code class="language-plaintext highlighter-rouge">\wsl$\Ubuntu\home\&lt;user&gt;\</code> from Windows explorer, we are looking inside that VHDX.</li>
+  <li>Because <code class="language-plaintext highlighter-rouge">/home/&lt;user&gt;</code> is inside the VHDX, it’s fast and emits reliable file-change events (ideal for dev loops).</li>
+</ul>
+
+<p>Windows drives are mounted into Linux under <code class="language-plaintext highlighter-rouge">/mnt</code> using a special filesystem driver called <em>DrvFs</em>.
+Think of this as a bridge that lets Linux processes read/write Windows files. It’s super convenient, but:</p>
+<ul>
+  <li>It emulates Linux-style permissions over NTFS</li>
+  <li>It bridges file-change notifications (sometimes misses events),</li>
+  <li>It’s generally slower for workloads with many small files.</li>
+</ul>
+
+<p>That’s why tools like Jekyll/NPM/Webpack work best from ~/ (inside the VHDX), and need –force_polling if you we develop under /mnt/*.</p>
+
+<ul>
+  <li><strong>Linux Home:</strong>  <code class="language-plaintext highlighter-rouge">~/</code> = <code class="language-plaintext highlighter-rouge">/home/&lt;user&gt;</code> -&gt; best place for code?</li>
+  <li><strong>Windows drives under WSL:</strong> <code class="language-plaintext highlighter-rouge">/mnt/c</code>, <code class="language-plaintext highlighter-rouge">/mnt/d</code>, -&gt; convenient access, slower for dev loops</li>
+</ul>
+
+<h4 id="the-short-map-of-paths">The short map of paths</h4>
+
+<table>
+  <thead>
+    <tr>
+      <th>Concept</th>
+      <th>WSL (Ubuntu) path</th>
+      <th>What it is</th>
+      <th>Windows-visible path</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Linux home</strong> (your files, configs)</td>
+      <td><code class="language-plaintext highlighter-rouge">/home/&lt;your-linux-user&gt;</code><br /><code class="language-plaintext highlighter-rouge">~</code> (shorthand)</td>
+      <td>Native <strong>Linux filesystem</strong> managed by WSL.<br />Fast I/O, reliable file-watch.</td>
+      <td><code class="language-plaintext highlighter-rouge">\\wsl$\Ubuntu\home\&lt;your-linux-user&gt;\</code><br />(open in Explorer)</td>
+    </tr>
+    <tr>
+      <td><strong>Windows user home</strong></td>
+      <td><code class="language-plaintext highlighter-rouge">/mnt/c/Users/&lt;YourWindowsName&gt;</code></td>
+      <td>Your Windows profile, seen from <strong>WSL</strong> via the <code class="language-plaintext highlighter-rouge">/mnt/*</code> bridge.</td>
+      <td><code class="language-plaintext highlighter-rouge">C:\Users\&lt;YourWindowsName&gt;</code></td>
+    </tr>
+    <tr>
+      <td><strong>Windows drives</strong></td>
+      <td><code class="language-plaintext highlighter-rouge">/mnt/c/</code>, <code class="language-plaintext highlighter-rouge">/mnt/d/</code>, <code class="language-plaintext highlighter-rouge">/mnt/e/</code></td>
+      <td>Automatic mounts of Windows drives <strong>inside WSL</strong>.<br />Convenient access, but slower for dev &amp; flaky file-watch.</td>
+      <td><code class="language-plaintext highlighter-rouge">C:\</code>, <code class="language-plaintext highlighter-rouge">D:\</code>, <code class="language-plaintext highlighter-rouge">E:\</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h4 id="how-to-see-where-we-are-and-what-its-mounted-on">How to see where we are and what it’s mounted on</h4>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">pwd</span>                 <span class="c"># current dir</span>
+<span class="nb">df</span> <span class="nt">-h</span> ~             <span class="c"># free/used space of your Linux home filesystem</span>
+findmnt ~           <span class="c"># shows the mount &amp; filesystem backing your home</span>
+
+<span class="c">###### RESULT -&gt;</span>
+prida01@DhanushPC:/mnt/e/MyBlog<span class="nv">$ </span><span class="nb">pwd</span>
+/mnt/e/MyBlog
+prida01@DhanushPC:/mnt/e/MyBlog<span class="nv">$ </span><span class="nb">echo</span> <span class="nv">$HOME</span>
+/home/prida01
+prida01@DhanushPC:/mnt/e/MyBlog<span class="nv">$ </span><span class="nb">df</span> <span class="nt">-h</span>
+Filesystem      Size  Used Avail Use% Mounted on
+none            3.9G     0  3.9G   0% /usr/lib/modules/6.6.87.2-microsoft-standard-WSL2
+none            3.9G  4.0K  3.9G   1% /mnt/wsl
+drivers         364G  304G   61G  84% /usr/lib/wsl/drivers
+/dev/sdd        251G  2.8G  236G   2% /
+none            3.9G  488K  3.9G   1% /mnt/wslg
+none            3.9G     0  3.9G   0% /usr/lib/wsl/lib
+rootfs          3.9G  2.7M  3.9G   1% /init
+none            3.9G  4.0K  3.9G   1% /run
+none            3.9G     0  3.9G   0% /run/lock
+none            3.9G     0  3.9G   0% /run/shm
+none            3.9G     0  3.9G   0% /run/user
+none            3.9G   76K  3.9G   1% /mnt/wslg/versions.txt
+none            3.9G   76K  3.9G   1% /mnt/wslg/doc
+C:<span class="se">\ </span>            364G  304G   61G  84% /mnt/c
+D:<span class="se">\ </span>            293G   90G  204G  31% /mnt/d
+E:<span class="se">\ </span>            262G   19G  244G   8% /mnt/e
+</code></pre></div></div>
+
+<p>Convert paths:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#bash</span>
+wslpath <span class="s1">'E:\MyBlog\GITBLOG'</span>      <span class="c"># -&gt; /mnt/e/MyBlog/GITBLOG</span>
+</code></pre></div></div>
+
+<h4 id="shifting-from-mnt-to-using-code-id-used-previously--">Shifting from <code class="language-plaintext highlighter-rouge">/mnt/</code> to <code class="language-plaintext highlighter-rouge">~</code>(using code I’d used previously) -&gt;</h4>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir</span> <span class="nt">-p</span> ~/code
+rsync <span class="nt">-a</span> <span class="nt">--info</span><span class="o">=</span>progress2 /mnt/e/MyBlog/GITBLOG/P-Dhanush.github.io/ ~/code/P-Dhanush.github.io/
+<span class="nb">cd</span> ~/code/P-Dhanush.github.io
+bundle <span class="nb">install
+</span>bundle <span class="nb">exec </span>jekyll serve <span class="nt">--livereload</span> <span class="nt">--drafts</span> <span class="nt">--future</span>   <span class="c"># I was able to proceed without --force_polling</span>
+</code></pre></div></div>
+
+<h3 id="32-performance--file-watching">3.2 Performance &amp; file-watching</h3>
+
+<ul>
+  <li>Hot-reload tools (Jekyll/Webpack/nodemon) watch files.</li>
+  <li>In <code class="language-plaintext highlighter-rouge">~/</code>: events are reliable.</li>
+  <li>In <code class="language-plaintext highlighter-rouge">/mnt/*</code>: events can be missed → use polling flags (e.g., <code class="language-plaintext highlighter-rouge">--force_polling</code>) or move repo to <code class="language-plaintext highlighter-rouge">~/</code>.</li>
+</ul>
+
+<h2 id="4-processes-networks-interop">4. Processes, Networks, Interop</h2>
+
+<h3 id="41-run-windows-apps-from-wsl-and-vice-versa">4.1 Run Windows apps from WSL and vice versa</h3>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># From WSL:</span>
+explorer.exe <span class="nb">.</span>          <span class="c"># open current folder in Windows Explorer</span>
+notepad.exe README.md   <span class="c"># open file in Notepad</span>
+powershell.exe <span class="nt">-Command</span> <span class="s2">"Get-Process"</span>   <span class="c"># run a PowerShell command</span>
+
+<span class="c"># From Windows PowerShell to WSL:</span>
+wsl <span class="nb">ls</span> <span class="nt">-la</span>
+wsl <span class="nt">-e</span> bash <span class="nt">-lc</span> <span class="s2">"echo hello from linux"</span>
+</code></pre></div></div>
+
+<h3 id="42-networking-basics">4.2 Networking Basics</h3>
+<ul>
+  <li>WSL2 uses NAT; it has its own IP.</li>
+  <li>Access Windows services from WSL via <code class="language-plaintext highlighter-rouge">localhost</code> (mirrored by WSL).</li>
+  <li>Access WSL services from Windows usually via <code class="language-plaintext highlighter-rouge">localhost:PORT</code> (modern WSL enables this by default). If not, check firewall.</li>
+</ul>
+
+<h2 id="5-package-managers--toolchains">5. Package Managers &amp; Toolchains</h2>
+<h3 id="51-apt-vs-wingetchoco">5.1 apt vs winget/choco</h3>
+
+<p>Inside WSL: use <code class="language-plaintext highlighter-rouge">apt</code> for Linux packages.
+Windows side: <code class="language-plaintext highlighter-rouge">winget</code> or <code class="language-plaintext highlighter-rouge">choco</code> for Windows apps.</p>
+
+<h3 id="52-common-stacks-quick-installs">5.2 Common stacks (quick installs)</h3>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Compilers / build tools</span>
+<span class="nb">sudo </span>apt update
+<span class="nb">sudo </span>apt <span class="nb">install</span> <span class="nt">-y</span> build-essential git curl
+
+<span class="c"># Python (example)</span>
+<span class="nb">sudo </span>apt <span class="nb">install</span> <span class="nt">-y</span> python3 python3-venv python3-pip
+
+<span class="c"># Node via nvm</span>
+curl <span class="nt">-fsSL</span> https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+<span class="nb">source</span> ~/.bashrc
+nvm <span class="nb">install</span> <span class="nt">--lts</span>
+
+<span class="c"># Ruby/Jekyll</span>
+<span class="nb">sudo </span>apt <span class="nb">install</span> <span class="nt">-y</span> ruby-full zlib1g-dev
+gem <span class="nb">install </span>bundler
+</code></pre></div></div>
+
+<h2 id="6-git--projects">6. Git &amp; Projects</h2>
+<h3 id="61-where-to-clone">6.1 Where to clone</h3>
+
+<p>Prefer: <code class="language-plaintext highlighter-rouge">~/code/&lt;project&gt;</code> (fast, reliable).
+Avoid for hot dev: <code class="language-plaintext highlighter-rouge">/mnt/c/...</code> (OK for occasional access/copies).</p>
+
+<h3 id="62-useful-git-setup">6.2 Useful Git setup</h3>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git config <span class="nt">--global</span> user.name  <span class="s2">"Your Name"</span>
+git config <span class="nt">--global</span> user.email you@example.com
+git config <span class="nt">--global</span> init.defaultBranch main
+git config <span class="nt">--global</span> core.autocrlf input
+git fetch <span class="nt">--all</span> <span class="nt">--prune</span>
+</code></pre></div></div>
+
+<p>Daily flows:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git pull <span class="nt">--rebase</span>
+git stash push <span class="nt">-u</span> <span class="nt">-m</span> <span class="s2">"WIP"</span> <span class="o">&amp;&amp;</span> git stash pop
+git log <span class="nt">--oneline</span> <span class="nt">-n</span> 5
+</code></pre></div></div>
+
+<h2 id="7-troubleshooting">7. Troubleshooting</h2>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+
+
+        
+
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time class="dt-published" datetime="2025-10-15T10:30:00+05:30">October 15, 2025</time></p>
+
+      </footer>
+
+      
+
+      
+  <nav class="pagination">
+    
+      <a href="/notes/2025/10/15/object-model-raii.html" class="pagination--pager" title="C++ Object Model &amp; RAII (Ownership, Lifetime, Memory)
+">Previous</a>
+    
+    
+      <a href="/notes/2025/10/16/pointers_and-references.html" class="pagination--pager" title="Pointers &amp; References
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+      
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+
+    
+
+    
+      <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+    
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2025 <a href="https://p-dhanush.github.io">P-Dhanush</a>. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,611 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.26.2 by Michael Rose
+  Copyright 2013-2024 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Pointers &amp; References - P-Dhanush</title>
+<meta name="description" content="">
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="P-Dhanush">
+<meta property="og:title" content="Pointers &amp; References">
+<meta property="og:url" content="https://p-dhanush.github.io/notes/2025/10/16/pointers_and-references.html">
+
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2025-10-16T10:30:00+05:30">
+
+
+
+
+
+
+<link rel="canonical" href="https://p-dhanush.github.io/notes/2025/10/16/pointers_and-references.html">
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+
+  <link href="/feed.xml" type="application/atom+xml" rel="alternate" title="P-Dhanush Feed">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script type="text/javascript">
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+  
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css"></noscript>
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single wide">
+    <nav class="skip-links">
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          P-Dhanush
+          
+        </a>
+        <ul class="visible-links"></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+  
+    
+      
+      
+      
+      
+    
+    
+      <nav class="nav__list">
+  
+  <input id="ac-toc" name="accordion-toc" type="checkbox" />
+  <label for="ac-toc">Toggle Menu</label>
+  <ul class="nav__items">
+    
+      
+      
+        <li>
+          
+            <span class="nav__sub-title">C++</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/pointers_and-references/">Pointers & References</a></li>
+            
+              <li><a href="/notes/classes/">Classes</a></li>
+            
+              <li><a href="/notes/structs/">Structs</a></li>
+            
+          </ul>
+          
+        </li>
+      
+        <li>
+          
+            <span class="nav__sub-title">Market Microstructure / HFT</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/column-store-architecture/">Crypto L2 Analysis: Part 1 — Column Store Architecture</a></li>
+            
+              <li><a href="/notes/okx-to-colstore/">OKX NDJSON → Colstore Ingest</a></li>
+            
+          </ul>
+          
+        </li>
+      
+        <li>
+          
+            <span class="nav__sub-title">Yield Curves / Rates</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/usd-sofr-bootstrapping/">USD SOFR Bootstrapping — Guide</a></li>
+            
+              <li><a href="/notes/dv01-krd-heatmaps/">DV01 & Key-Rate Heatmaps</a></li>
+            
+          </ul>
+          
+        </li>
+      
+    
+  </ul>
+</nav>
+
+    
+  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Pointers &amp; References">
+    <meta itemprop="description" content="">
+    <meta itemprop="datePublished" content="2025-10-16T10:30:00+05:30">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">
+            <a href="https://p-dhanush.github.io/notes/2025/10/16/pointers_and-references.html" itemprop="url">Pointers &amp; References
+</a>
+          </h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title"><i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu"><li><a href="#pointers--references">Pointers &amp; References</a><ul><li><a href="#pointer">Pointer</a><ul><li><a href="#indirection">Indirection</a></li><li><a href="#optionality">Optionality</a></li><li><a href="#polymorphism">Polymorphism</a><ul><li><a href="#object-slicing-porblem-without-pointers-loses-derived-info">Object Slicing Porblem without Pointers (loses derived info)</a></li></ul></li><li><a href="#copying-vs-moving">Copying vs Moving</a></li></ul></li><li><a href="#when-to-use-pointers">When to use Pointers</a><ul><li><a href="#dynamic-allocation-heap-memory">Dynamic Allocation (heap memory)</a></li><li><a href="#linked-data-structures-trees-graphs-etc">Linked Data Structures (Trees, Graphs, etc.)</a></li><li><a href="#polymorpism-dynamic-dispatch">Polymorpism (Dynamic Dispatch)</a></li><li><a href="#avoiding-copies-performance--semantics-references">Avoiding Copies (Performance &amp; Semantics) {REFERENCES}</a></li></ul></li></ul></li><li><a href="#reference-what-is-it">Reference? What is it?</a></li><li><a href="#reference-to-a-pointer">Reference to a Pointer</a><ul><li><a href="#when-we-use-this">When we use this</a></li><li><a href="#examples">Examples</a><ul><li><a href="#1-freeing-heap-memory">1. Freeing Heap Memory</a></li><li><a href="#2-taking-ownership">2. Taking Ownership</a></li></ul></li></ul></li></ul></li></ul>
+            </nav>
+          </aside>
+        
+        <h1 id="pointers--references">Pointers &amp; References</h1>
+
+<ul id="markdown-toc">
+  <li><a href="#pointers--references" id="markdown-toc-pointers--references">Pointers &amp; References</a>    <ul>
+      <li><a href="#pointer" id="markdown-toc-pointer">Pointer</a>        <ul>
+          <li><a href="#indirection" id="markdown-toc-indirection">Indirection</a></li>
+          <li><a href="#optionality" id="markdown-toc-optionality">Optionality</a></li>
+          <li><a href="#polymorphism" id="markdown-toc-polymorphism">Polymorphism</a>            <ul>
+              <li><a href="#object-slicing-porblem-without-pointers-loses-derived-info" id="markdown-toc-object-slicing-porblem-without-pointers-loses-derived-info">Object Slicing Porblem without Pointers (loses derived info)</a></li>
+            </ul>
+          </li>
+          <li><a href="#copying-vs-moving" id="markdown-toc-copying-vs-moving">Copying vs Moving</a></li>
+          <li><a href="#when-to-use-pointers" id="markdown-toc-when-to-use-pointers">When to use Pointers</a>            <ul>
+              <li><a href="#dynamic-allocation-heap-memory" id="markdown-toc-dynamic-allocation-heap-memory">Dynamic Allocation (heap memory)</a></li>
+              <li><a href="#linked-data-structures-trees-graphs-etc" id="markdown-toc-linked-data-structures-trees-graphs-etc">Linked Data Structures (Trees, Graphs, etc.)</a></li>
+              <li><a href="#polymorpism-dynamic-dispatch" id="markdown-toc-polymorpism-dynamic-dispatch">Polymorpism (Dynamic Dispatch)</a></li>
+              <li><a href="#avoiding-copies-performance--semantics-references" id="markdown-toc-avoiding-copies-performance--semantics-references">Avoiding Copies (Performance &amp; Semantics) {<em>REFERENCES</em>}</a></li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li><a href="#reference-what-is-it" id="markdown-toc-reference-what-is-it">Reference? What is it?</a></li>
+      <li><a href="#reference-to-a-pointer" id="markdown-toc-reference-to-a-pointer">Reference to a Pointer</a>        <ul>
+          <li><a href="#when-we-use-this" id="markdown-toc-when-we-use-this">When we use this</a></li>
+          <li><a href="#examples" id="markdown-toc-examples">Examples</a>            <ul>
+              <li><a href="#1-freeing-heap-memory" id="markdown-toc-1-freeing-heap-memory">1. Freeing Heap Memory</a></li>
+              <li><a href="#2-taking-ownership" id="markdown-toc-2-taking-ownership">2. Taking Ownership</a></li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<hr />
+
+<h2 id="pointer">Pointer</h2>
+<p>A <strong>pointer</strong> holds the <em>address</em> of an object or <code class="language-plaintext highlighter-rouge">nullptr</code>. Use pointers when you need <em>indirection</em>, <em>optionality</em>, <em>polymorphism</em>. Prefer smart pointers (std::unique_ptr, std::shared_ptr) for ownership. Use raw pointers for non-owning observation.</p>
+
+<h4 id="indirection">Indirection</h4>
+<p>Accessing an object through something else (an address/handle) rather than directly.
+Consider Widget to have a paint() method belonging to it, and if we want to access it -&gt;</p>
+<ul>
+  <li>Direct: <code class="language-plaintext highlighter-rouge">Widget w; w.paint();</code></li>
+  <li>Indirect: <code class="language-plaintext highlighter-rouge">Widget* p = &amp;w; p-&gt;paint();</code> (you go “through” a pointer)</li>
+  <li>References (<code class="language-plaintext highlighter-rouge">T&amp;</code>) are also indirection: <code class="language-plaintext highlighter-rouge">Widget&amp; r = w; r.paint();</code>. References are discussed in detail below.</li>
+</ul>
+
+<p>Uses-&gt;</p>
+<ul>
+  <li>Pointing to different objects at runtime (reseating)
+  less fancily, to simply point to differet objects while running.
+    <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="n">Animal</span><span class="o">*</span> <span class="n">pet</span><span class="p">;</span>
+
+  <span class="n">Dog</span> <span class="n">dog</span><span class="p">;</span>
+  <span class="n">Cat</span> <span class="n">cat</span><span class="p">;</span>
+
+  <span class="n">pet</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">dog</span><span class="p">;</span>
+  <span class="n">pet</span><span class="o">-&gt;</span><span class="n">speak</span><span class="p">();</span>  <span class="c1">// Woof!</span>
+
+  <span class="n">pet</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">cat</span><span class="p">;</span>
+  <span class="n">pet</span><span class="o">-&gt;</span><span class="n">speak</span><span class="p">();</span>  <span class="c1">// Meow!</span>
+</code></pre></div>    </div>
+    <p>We aren’t creating new memory, we’re simply making it point to different objects.</p>
+  </li>
+  <li>Point to something that lives elsewhere (on heap, pool, library)
+    <ul>
+      <li>
+        <p>When we want create something that outlives the current scope
+  By default, variables in C++ have automatic (static) lifetimes.</p>
+
+        <p>That means:
+  When a function ends, all local variables are destroyed — their memory is automatically cleaned up.</p>
+
+        <p>So if we create an object inside a function, and try to return a pointer to it — we’d be pointing to garbage after the function ends!</p>
+
+        <p>Example:</p>
+        <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="kt">int</span><span class="o">*</span> <span class="nf">makeNumber</span><span class="p">()</span> <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>      <span class="c1">// x lives only inside this function</span>
+      <span class="k">return</span> <span class="o">&amp;</span><span class="n">x</span><span class="p">;</span>      <span class="c1">//  BAD: x will be destroyed when function ends</span>
+  <span class="p">}</span>
+
+  <span class="kt">int</span><span class="o">*</span> <span class="n">ptr</span> <span class="o">=</span> <span class="n">makeNumber</span><span class="p">();</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>  <span class="c1">//  Undefined behavior: x is already gone!</span>
+</code></pre></div>        </div>
+
+        <p>Solution:</p>
+        <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="kt">int</span><span class="o">*</span> <span class="nf">makeNumber</span><span class="p">()</span> <span class="p">{</span>
+      <span class="kt">int</span><span class="o">*</span> <span class="n">x</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">int</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>   <span class="c1">// x lives on the heap now!</span>
+      <span class="k">return</span> <span class="n">x</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="kt">int</span><span class="o">*</span> <span class="n">ptr</span> <span class="o">=</span> <span class="n">makeNumber</span><span class="p">();</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">ptr</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>  <span class="c1">//  Works: memory still exists</span>
+  <span class="k">delete</span> <span class="n">ptr</span><span class="p">;</span>  <span class="c1">//  must free it when done</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>Don’t know size/type during compile time. Will need to be allocated on heap.</p>
+      </li>
+      <li>
+        <p>Created by a library and given to us</p>
+      </li>
+    </ul>
+  </li>
+  <li>Needed for polymorphism (call virtual methods through a base handle)
+Virtual functions only work through pointers or references. This is explained in detail in the polymorphism section below.</li>
+</ul>
+
+<h4 id="optionality">Optionality</h4>
+<p>A value may be present or may be absent.
+Ways to model optionality in C++:</p>
+<ul>
+  <li>Raw pointer: <code class="language-plaintext highlighter-rouge">T*</code> (use nullptr for “absent”). Non-owning by default.</li>
+  <li><code class="language-plaintext highlighter-rouge">std::optional&lt;T&gt;</code>: the object may or may not exist (by value).</li>
+  <li><code class="language-plaintext highlighter-rouge">std::optional&lt;std::reference_wrapper&lt;T&gt;&gt;</code>: optional reference-like without null refs.</li>
+</ul>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Non-owning, nullable handle</span>
+<span class="kt">void</span> <span class="nf">maybe_draw</span><span class="p">(</span><span class="k">const</span> <span class="n">Widget</span><span class="o">*</span> <span class="n">w</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">w</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>  <span class="c1">// absent</span>
+    <span class="n">w</span><span class="o">-&gt;</span><span class="n">paint</span><span class="p">();</span>      <span class="c1">// present</span>
+<span class="p">}</span>
+
+<span class="c1">// Optional by value (copies or moves T)</span>
+<span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">find_index</span><span class="p">(</span><span class="kt">bool</span> <span class="n">hit</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">hit</span><span class="p">)</span> <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span>
+    <span class="k">return</span> <span class="mi">42</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h4 id="polymorphism">Polymorphism</h4>
+<p>Allows one interface (e.g. a function call) to work with different types of objects.
+<strong>Call the right function for the right object</strong></p>
+
+<p>Example -</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Animal</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="k">virtual</span> <span class="kt">void</span> <span class="n">speak</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Animal speaks"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="k">class</span> <span class="nc">Dog</span> <span class="o">:</span> <span class="k">public</span> <span class="n">Animal</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="kt">void</span> <span class="n">speak</span><span class="p">()</span> <span class="k">override</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Woof!"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="k">class</span> <span class="nc">Cat</span> <span class="o">:</span> <span class="k">public</span> <span class="n">Animal</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="kt">void</span> <span class="n">speak</span><span class="p">()</span> <span class="k">override</span> <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Meow!"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
+<p><a href="https://hackernoon.com/understanding-dynamic-polymorphism-in-c">*Above code snippet reference (dynamic polymorphism in c)</a></p>
+
+<h5 id="object-slicing-porblem-without-pointers-loses-derived-info">Object Slicing Porblem without Pointers (loses derived info)</h5>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// IF WE USE POINTERS -</span>
+<span class="n">Animal</span><span class="o">*</span> <span class="n">a1</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Dog</span><span class="p">();</span>
+<span class="n">Animal</span><span class="o">*</span> <span class="n">a2</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Cat</span><span class="p">();</span>
+<span class="n">a1</span><span class="o">-&gt;</span><span class="n">speak</span><span class="p">();</span>  <span class="c1">// Output: Woof!</span>
+<span class="n">a2</span><span class="o">-&gt;</span><span class="n">speak</span><span class="p">();</span>  <span class="c1">// Output: Meow!</span>
+
+<span class="c1">// ELSE!</span>
+<span class="n">Dog</span> <span class="n">d</span><span class="p">;</span>
+<span class="n">Animal</span> <span class="n">a</span> <span class="o">=</span> <span class="n">d</span><span class="p">;</span> <span class="c1">// Object slicing!</span>
+<span class="n">a</span><span class="p">.</span><span class="n">speak</span><span class="p">();</span>    <span class="c1">// Output: Animal speaks</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">Animal</code> is the base class (aka parent class)
+<code class="language-plaintext highlighter-rouge">Dog</code> is the derived class (aka child class)
+When we use a pointer, a pointer to <code class="language-plaintext highlighter-rouge">Animal</code> is actually pointing to a <code class="language-plaintext highlighter-rouge">Dog</code> object.
+Since <code class="language-plaintext highlighter-rouge">speak()</code> is declared <code class="language-plaintext highlighter-rouge">virtual</code> in <code class="language-plaintext highlighter-rouge">Animal</code>, C++ uses the virtual table (vtable) mechanism to resolve the function at runtime.
+The call to <code class="language-plaintext highlighter-rouge">a1-&gt;speak()</code> goes to <code class="language-plaintext highlighter-rouge">Dog::speak()</code> because the actual object is a Dog.</p>
+
+<p><strong>Here, virtual dispatch kicks in. Polymorphism works.</strong></p>
+
+<h4 id="copying-vs-moving">Copying vs Moving</h4>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span><span class="o">*</span> <span class="n">a</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">int</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
+<span class="kt">int</span><span class="o">*</span> <span class="n">b</span> <span class="o">=</span> <span class="n">a</span><span class="p">;</span> <span class="c1">// simple pointer copy</span>
+<span class="k">delete</span> <span class="n">a</span><span class="p">;</span>
+<span class="k">delete</span> <span class="n">b</span><span class="p">;</span> <span class="c1">// ❌ undefined behavior (double delete)</span>
+</code></pre></div></div>
+
+<p>This is becasue it looks like -&gt;</p>
+<div class="language-css highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">a</span> <span class="err">─┬──▶</span> <span class="o">[</span> <span class="nt">int</span><span class="o">:</span> <span class="err">42</span> <span class="o">]</span>
+   <span class="err">│</span>
+<span class="nt">b</span> <span class="err">─┘</span>
+</code></pre></div></div>
+
+<p>This can be avoided without <code class="language-plaintext highlighter-rouge">unique_ptr</code>:</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">a</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
+
+<span class="c1">// arranged like:</span>
+ <span class="n">a</span> <span class="err">───▶</span> <span class="p">[</span> <span class="kt">int</span><span class="o">:</span> <span class="mi">42</span> <span class="p">]</span> <span class="p">(</span><span class="n">on</span> <span class="n">heap</span><span class="p">)</span>
+</code></pre></div></div>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">a</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">b</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">a</span><span class="p">);</span> <span class="c1">// a is now nullptr, b owns the int</span>
+</code></pre></div></div>
+
+<h3 id="when-to-use-pointers">When to use Pointers</h3>
+
+<h4 id="dynamic-allocation-heap-memory">Dynamic Allocation (heap memory)</h4>
+<p><code class="language-plaintext highlighter-rouge">Animal* a = new Dog();  // Heap allocation</code>
+We need to make sure to mange memory in these cases, using <code class="language-plaintext highlighter-rouge">delete</code> or smart pointers like <code class="language-plaintext highlighter-rouge">unique_ptr</code>.</p>
+
+<h4 id="linked-data-structures-trees-graphs-etc">Linked Data Structures (Trees, Graphs, etc.)</h4>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Node</span> <span class="p">{</span>
+<span class="nl">public:</span>
+    <span class="kt">int</span> <span class="n">data</span><span class="p">;</span>
+    <span class="n">Node</span><span class="o">*</span> <span class="n">next</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<h4 id="polymorpism-dynamic-dispatch">Polymorpism (Dynamic Dispatch)</h4>
+
+<h4 id="avoiding-copies-performance--semantics-references">Avoiding Copies (Performance &amp; Semantics) {<em>REFERENCES</em>}</h4>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">process</span><span class="p">(</span><span class="k">const</span> <span class="n">MyClass</span><span class="o">&amp;</span> <span class="n">obj</span><span class="p">);</span> <span class="c1">// no copy</span>
+</code></pre></div></div>
+
+<hr />
+
+<h2 id="reference-what-is-it">Reference? What is it?</h2>
+
+<p>✅ A reference is an alias to an existing variable.</p>
+<ul>
+  <li>It’s not a new object</li>
+  <li>It refers to the same memory as the original</li>
+  <li>After initialization, a reference cannot be changed to refer to something else</li>
+</ul>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">42</span><span class="p">;</span>
+<span class="kt">int</span><span class="o">&amp;</span> <span class="n">ref_to_x</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+
+<span class="n">ref_to_x</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="o">&lt;&lt;</span> <span class="n">x</span><span class="p">;</span> <span class="c1">// Yields 100.</span>
+</code></pre></div></div>
+
+<h2 id="reference-to-a-pointer">Reference to a Pointer</h2>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">closefile</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">File</span><span class="o">*&amp;</span> <span class="n">f</span><span class="p">){</span> <span class="c1">// Here we are referencing a pointer. file must be a pointer.</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">f</span><span class="p">){</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">fclose</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// This will allow us to directly manipulate where f is pointing to.</span>
+</code></pre></div></div>
+
+<p>A relevant pass by value mistake –&gt;
+If we had done this instead. The pointer that was passed by value ultimately leads to the same location. File would definitely be closed. However, we’d have a dangling pointer. We need to set the original itself to null.</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// If we did something like -&gt;</span>
+<span class="kt">void</span> <span class="nf">safeclose_wrong</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">File</span><span class="o">*</span> <span class="n">f</span><span class="p">){</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">f</span><span class="p">){</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">fclose</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+<span class="c1">// We are actually getting a copy of the pointer instead. We aren't setting the original pointer to nullptr.</span>
+</code></pre></div></div>
+
+<h3 id="when-we-use-this">When we use this</h3>
+
+<p><strong>To modify a caller’s pointer itself</strong>
+When would we want to modify?</p>
+<ul>
+  <li>You’re managing dynamic memory</li>
+  <li>You’re closing or freeing a resource</li>
+  <li>You want to prevent reuse of a now-invalid pointer</li>
+</ul>
+
+<p><strong>Stealing a resource</strong></p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">a</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">b</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>  <span class="c1">// b now owns it, a is nullptr</span>
+</code></pre></div></div>
+<p>Here, <code class="language-plaintext highlighter-rouge">a</code> no longer owns the pointer — <code class="language-plaintext highlighter-rouge">b</code> “stole” it.</p>
+
+<h3 id="examples">Examples</h3>
+
+<h4 id="1-freeing-heap-memory">1. Freeing Heap Memory</h4>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">safe_delete</span><span class="p">(</span><span class="kt">int</span><span class="o">*&amp;</span> <span class="n">ptr</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">delete</span> <span class="n">ptr</span><span class="p">;</span>
+    <span class="n">ptr</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">int</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
+<span class="n">safe_delete</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>  <span class="c1">// cleans and nulls p</span>
+
+</code></pre></div></div>
+
+<h4 id="2-taking-ownership">2. Taking Ownership</h4>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">take_ownership</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">MyClass</span><span class="o">&gt;&amp;</span> <span class="n">ptr</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">do_something</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">ptr</span><span class="p">));</span>  <span class="c1">// ptr becomes nullptr</span>
+<span class="p">}</span>
+
+<span class="c1">// caller:</span>
+<span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">MyClass</span><span class="o">&gt;</span> <span class="n">p</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">MyClass</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="n">take_ownership</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>
+<span class="c1">// p is now nullptr, ownership transferred</span>
+
+</code></pre></div></div>
+
+<p>NEED TO PUT INFO std::move AND MOVE SEMANTICS IN DETAIL IN A RELEVANT PLAC EWITH PROPER SEGUE, LINK THIS TO CONSTRUCTORS.</p>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+
+
+        
+
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time class="dt-published" datetime="2025-10-16T10:30:00+05:30">October 16, 2025</time></p>
+
+      </footer>
+
+      
+
+      
+  <nav class="pagination">
+    
+      <a href="/notes/2025/10/15/WSLCheatsheet.html" class="pagination--pager" title="WSL Cheatsheet
+">Previous</a>
+    
+    
+      <a href="/2025/10/17/classes.html" class="pagination--pager" title="Classes
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+      
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+
+    
+
+    
+      <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+    
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2025 <a href="https://p-dhanush.github.io">P-Dhanush</a>. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+
+
+
+
+
+  </body>
+</html>

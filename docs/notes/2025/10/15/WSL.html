@@ -1,0 +1,443 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.26.2 by Michael Rose
+  Copyright 2013-2024 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>WSL - P-Dhanush</title>
+<meta name="description" content="title: “WSL Notes” description: “A living document of how WSL and practical tips to use it.” last_updated: 2025-10-15 tags: [wsl, linux, windows, bash, powershell, dev-setup] —  WSL Notes     A structured, evolving reference for understanding WSL (Windows Subsystem for Linux) from fundamentals to daily workflows, including Bash vs PowerShell, WSL1 vs WSL2, filesystem interop, networking, performance, automation, and common recipes.     Table of Contents    1. First Principles            1.1 What is an OS, kernel, and userspace?       1.2 Where WSL fits in       1.3 WSL1 vs WSL2           2. Shells &amp; Environments            2.1 Bash (Linux) vs PowerShell (Windows)       2.2 Profiles: .bashrc, .profile, PowerShell profiles       2.3 Environment variables           3. Filesystems &amp; Paths            3.1 WSL filesystem vs Windows drives       3.2 Performance &amp; file-watching       3.3 Line endings &amp; permissions           4. Processes, Networking, Interop            4.1 Running Windows apps from WSL &amp; vice versa       4.2 Networking model       4.3 Clipboard &amp; file association tips           5. Package Managers &amp; Toolchains            5.1 apt vs winget/choco       5.2 Compilers, build tools, Python, Node, Ruby           6. Git &amp; Projects            6.1 Where to clone projects       6.2 Git config &amp; CRLF handling           7. Daily Recipes (Copy-Paste Friendly)   8. Troubleshooting &amp; Diagnostics   9. Security &amp; Backups   10. Comparative Analysis (Quick Reference)   11. Glossary   12. Further Reading   Appendix A: Personal Setup Checklists   Appendix B: Snippets     1. First Principles  1.1 What is an OS, kernel, and userspace?    Kernel: manages hardware, processes, memory, filesystems, networking.   Userspace: shells, tools, libraries, apps.   Linux vs Windows: different kernels → different system calls &amp; tooling.      Add notes/examples:        Example: strace (Linux) vs Process Monitor (Windows)     Syscalls vs Win32 APIs      1.2 Where WSL fits in    WSL = run a Linux userspace on Windows.   WSL1: syscall translation layer → Linux syscalls translated to Windows kernel calls.   WSL2: lightweight VM running a real Linux kernel → higher compatibility/perf, different networking/filesystem behavior.   1.3 WSL1 vs WSL2 | Aspect | WSL1 | WSL2 | |—|—|—| | Kernel | Translation layer | Real Linux kernel (in a managed VM) | | FS Perf (Linux home) | N/A | Fast | | FS Perf (/mnt/c/...) | Generally fast | Slower; use for access, not hot dev | | Inotify/File watch | Bridged | Native in Linux FS; flaky on /mnt/* | | Networking | Shares host IP | NAT/virtualized; different IP | | Compatibility | Good, not perfect | Very high |     Choose WSL2 for most dev. Keep repos in ~/ (Linux FS). Use /mnt/* for occasional access to Windows files.     2. Shells &amp; Environments  2.1 Bash (Linux) vs PowerShell (Windows) | Topic | Bash | PowerShell | |—|—|—| | Prompt style | $ | PS C:\&gt; | | Scripting | #!/usr/bin/env bash | .ps1, PowerShell syntax | | Env var set | FOO=bar cmd or export FOO=bar | $env:FOO=&#39;bar&#39;; cmd | | Path sep | /home/user | C:\Users\User | | Pipe objects? | Text streams | .NET objects |     Use Bash inside WSL for Linux tooling &amp; package managers; PowerShell for Windows-side automation.   2.2 Profiles: .bashrc, .profile, PowerShell profiles    ~/.bashrc: runs for interactive Bash shells; good for aliases, exports.   ~/.profile / ~/.bash_profile: login shell config.   PowerShell profile: see $PROFILE for path; customize aliases &amp; functions.   Common Bash additions: ```bash ~/.bashrc export GEM_HOME=”$HOME/.gems” export PATH=”$HOME/.gems/bin:$PATH” alias ll=’ls -lah’ alias jserve=’bundle exec jekyll serve –livereload –drafts –future –force_polling’">
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="P-Dhanush">
+<meta property="og:title" content="WSL">
+<meta property="og:url" content="https://p-dhanush.github.io/notes/2025/10/15/WSL.html">
+
+
+  <meta property="og:description" content="title: “WSL Notes” description: “A living document of how WSL and practical tips to use it.” last_updated: 2025-10-15 tags: [wsl, linux, windows, bash, powershell, dev-setup] —  WSL Notes     A structured, evolving reference for understanding WSL (Windows Subsystem for Linux) from fundamentals to daily workflows, including Bash vs PowerShell, WSL1 vs WSL2, filesystem interop, networking, performance, automation, and common recipes.     Table of Contents    1. First Principles            1.1 What is an OS, kernel, and userspace?       1.2 Where WSL fits in       1.3 WSL1 vs WSL2           2. Shells &amp; Environments            2.1 Bash (Linux) vs PowerShell (Windows)       2.2 Profiles: .bashrc, .profile, PowerShell profiles       2.3 Environment variables           3. Filesystems &amp; Paths            3.1 WSL filesystem vs Windows drives       3.2 Performance &amp; file-watching       3.3 Line endings &amp; permissions           4. Processes, Networking, Interop            4.1 Running Windows apps from WSL &amp; vice versa       4.2 Networking model       4.3 Clipboard &amp; file association tips           5. Package Managers &amp; Toolchains            5.1 apt vs winget/choco       5.2 Compilers, build tools, Python, Node, Ruby           6. Git &amp; Projects            6.1 Where to clone projects       6.2 Git config &amp; CRLF handling           7. Daily Recipes (Copy-Paste Friendly)   8. Troubleshooting &amp; Diagnostics   9. Security &amp; Backups   10. Comparative Analysis (Quick Reference)   11. Glossary   12. Further Reading   Appendix A: Personal Setup Checklists   Appendix B: Snippets     1. First Principles  1.1 What is an OS, kernel, and userspace?    Kernel: manages hardware, processes, memory, filesystems, networking.   Userspace: shells, tools, libraries, apps.   Linux vs Windows: different kernels → different system calls &amp; tooling.      Add notes/examples:        Example: strace (Linux) vs Process Monitor (Windows)     Syscalls vs Win32 APIs      1.2 Where WSL fits in    WSL = run a Linux userspace on Windows.   WSL1: syscall translation layer → Linux syscalls translated to Windows kernel calls.   WSL2: lightweight VM running a real Linux kernel → higher compatibility/perf, different networking/filesystem behavior.   1.3 WSL1 vs WSL2 | Aspect | WSL1 | WSL2 | |—|—|—| | Kernel | Translation layer | Real Linux kernel (in a managed VM) | | FS Perf (Linux home) | N/A | Fast | | FS Perf (/mnt/c/...) | Generally fast | Slower; use for access, not hot dev | | Inotify/File watch | Bridged | Native in Linux FS; flaky on /mnt/* | | Networking | Shares host IP | NAT/virtualized; different IP | | Compatibility | Good, not perfect | Very high |     Choose WSL2 for most dev. Keep repos in ~/ (Linux FS). Use /mnt/* for occasional access to Windows files.     2. Shells &amp; Environments  2.1 Bash (Linux) vs PowerShell (Windows) | Topic | Bash | PowerShell | |—|—|—| | Prompt style | $ | PS C:\&gt; | | Scripting | #!/usr/bin/env bash | .ps1, PowerShell syntax | | Env var set | FOO=bar cmd or export FOO=bar | $env:FOO=&#39;bar&#39;; cmd | | Path sep | /home/user | C:\Users\User | | Pipe objects? | Text streams | .NET objects |     Use Bash inside WSL for Linux tooling &amp; package managers; PowerShell for Windows-side automation.   2.2 Profiles: .bashrc, .profile, PowerShell profiles    ~/.bashrc: runs for interactive Bash shells; good for aliases, exports.   ~/.profile / ~/.bash_profile: login shell config.   PowerShell profile: see $PROFILE for path; customize aliases &amp; functions.   Common Bash additions: ```bash ~/.bashrc export GEM_HOME=”$HOME/.gems” export PATH=”$HOME/.gems/bin:$PATH” alias ll=’ls -lah’ alias jserve=’bundle exec jekyll serve –livereload –drafts –future –force_polling’">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2025-10-15T00:00:00+05:30">
+
+
+
+
+
+
+<link rel="canonical" href="https://p-dhanush.github.io/notes/2025/10/15/WSL.html">
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+
+  <link href="/feed.xml" type="application/atom+xml" rel="alternate" title="P-Dhanush Feed">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script type="text/javascript">
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+  
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css"></noscript>
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single wide">
+    <nav class="skip-links">
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          P-Dhanush
+          
+        </a>
+        <ul class="visible-links"></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+  
+    
+      
+      
+      
+      
+    
+    
+      <nav class="nav__list">
+  
+  <input id="ac-toc" name="accordion-toc" type="checkbox" />
+  <label for="ac-toc">Toggle Menu</label>
+  <ul class="nav__items">
+    
+      
+      
+        <li>
+          
+            <span class="nav__sub-title">C++</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/pointers_and-references/">Pointers & References</a></li>
+            
+              <li><a href="/notes/classes/">Classes</a></li>
+            
+              <li><a href="/notes/structs/">Structs</a></li>
+            
+          </ul>
+          
+        </li>
+      
+        <li>
+          
+            <span class="nav__sub-title">Market Microstructure / HFT</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/column-store-architecture/">Crypto L2 Analysis: Part 1 — Column Store Architecture</a></li>
+            
+              <li><a href="/notes/okx-to-colstore/">OKX NDJSON → Colstore Ingest</a></li>
+            
+          </ul>
+          
+        </li>
+      
+        <li>
+          
+            <span class="nav__sub-title">Yield Curves / Rates</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/usd-sofr-bootstrapping/">USD SOFR Bootstrapping — Guide</a></li>
+            
+              <li><a href="/notes/dv01-krd-heatmaps/">DV01 & Key-Rate Heatmaps</a></li>
+            
+          </ul>
+          
+        </li>
+      
+    
+  </ul>
+</nav>
+
+    
+  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="WSL">
+    <meta itemprop="description" content="title: “WSL Notes”description: “A living document of how WSL and practical tips to use it.”last_updated: 2025-10-15tags: [wsl, linux, windows, bash, powershell, dev-setup]—WSL Notes  A structured, evolving reference for understanding WSL (Windows Subsystem for Linux) from fundamentals to daily workflows, including Bash vs PowerShell, WSL1 vs WSL2, filesystem interop, networking, performance, automation, and common recipes.Table of Contents  1. First Principles          1.1 What is an OS, kernel, and userspace?      1.2 Where WSL fits in      1.3 WSL1 vs WSL2        2. Shells &amp; Environments          2.1 Bash (Linux) vs PowerShell (Windows)      2.2 Profiles: .bashrc, .profile, PowerShell profiles      2.3 Environment variables        3. Filesystems &amp; Paths          3.1 WSL filesystem vs Windows drives      3.2 Performance &amp; file-watching      3.3 Line endings &amp; permissions        4. Processes, Networking, Interop          4.1 Running Windows apps from WSL &amp; vice versa      4.2 Networking model      4.3 Clipboard &amp; file association tips        5. Package Managers &amp; Toolchains          5.1 apt vs winget/choco      5.2 Compilers, build tools, Python, Node, Ruby        6. Git &amp; Projects          6.1 Where to clone projects      6.2 Git config &amp; CRLF handling        7. Daily Recipes (Copy-Paste Friendly)  8. Troubleshooting &amp; Diagnostics  9. Security &amp; Backups  10. Comparative Analysis (Quick Reference)  11. Glossary  12. Further Reading  Appendix A: Personal Setup Checklists  Appendix B: Snippets1. First Principles1.1 What is an OS, kernel, and userspace?  Kernel: manages hardware, processes, memory, filesystems, networking.  Userspace: shells, tools, libraries, apps.  Linux vs Windows: different kernels → different system calls &amp; tooling.  Add notes/examples:      Example: strace (Linux) vs Process Monitor (Windows)    Syscalls vs Win32 APIs  1.2 Where WSL fits in  WSL = run a Linux userspace on Windows.  WSL1: syscall translation layer → Linux syscalls translated to Windows kernel calls.  WSL2: lightweight VM running a real Linux kernel → higher compatibility/perf, different networking/filesystem behavior.1.3 WSL1 vs WSL2| Aspect | WSL1 | WSL2 ||—|—|—|| Kernel | Translation layer | Real Linux kernel (in a managed VM) || FS Perf (Linux home) | N/A | Fast || FS Perf (/mnt/c/...) | Generally fast | Slower; use for access, not hot dev || Inotify/File watch | Bridged | Native in Linux FS; flaky on /mnt/* || Networking | Shares host IP | NAT/virtualized; different IP || Compatibility | Good, not perfect | Very high |  Choose WSL2 for most dev. Keep repos in ~/ (Linux FS). Use /mnt/* for occasional access to Windows files.2. Shells &amp; Environments2.1 Bash (Linux) vs PowerShell (Windows)| Topic | Bash | PowerShell ||—|—|—|| Prompt style | $ | PS C:\&gt; || Scripting | #!/usr/bin/env bash | .ps1, PowerShell syntax || Env var set | FOO=bar cmd or export FOO=bar | $env:FOO=&#39;bar&#39;; cmd || Path sep | /home/user | C:\Users\User || Pipe objects? | Text streams | .NET objects |  Use Bash inside WSL for Linux tooling &amp; package managers; PowerShell for Windows-side automation.2.2 Profiles: .bashrc, .profile, PowerShell profiles  ~/.bashrc: runs for interactive Bash shells; good for aliases, exports.  ~/.profile / ~/.bash_profile: login shell config.  PowerShell profile: see $PROFILE for path; customize aliases &amp; functions.Common Bash additions:```bash~/.bashrcexport GEM_HOME=”$HOME/.gems”export PATH=”$HOME/.gems/bin:$PATH”alias ll=’ls -lah’alias jserve=’bundle exec jekyll serve –livereload –drafts –future –force_polling’">
+    <meta itemprop="datePublished" content="2025-10-15T00:00:00+05:30">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">
+            <a href="https://p-dhanush.github.io/notes/2025/10/15/WSL.html" itemprop="url">WSL
+</a>
+          </h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title"><i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu"><li><a href="#wsl-notes">WSL Notes</a><ul><li><a href="#table-of-contents">Table of Contents</a></li><li><a href="#1-first-principles">1. First Principles</a><ul><li><a href="#11-what-is-an-os-kernel-and-userspace">1.1 What is an OS, kernel, and userspace?</a></li><li><a href="#12-where-wsl-fits-in">1.2 Where WSL fits in</a></li><li><a href="#13-wsl1-vs-wsl2">1.3 WSL1 vs WSL2</a></li></ul></li><li><a href="#2-shells--environments">2. Shells &amp; Environments</a><ul><li><a href="#21-bash-linux-vs-powershell-windows">2.1 Bash (Linux) vs PowerShell (Windows)</a></li><li><a href="#22-profiles-bashrc-profile-powershell-profiles">2.2 Profiles: .bashrc, .profile, PowerShell profiles</a></li></ul></li></ul></li><li><a href="#bashrc">~/.bashrc</a></li></ul>
+            </nav>
+          </aside>
+        
+        <hr />
+<p>title: “WSL Notes”
+description: “A living document of how WSL and practical tips to use it.”
+last_updated: 2025-10-15
+tags: [wsl, linux, windows, bash, powershell, dev-setup]
+—</p>
+
+<h1 id="wsl-notes">WSL Notes</h1>
+
+<blockquote>
+  <p>A structured, evolving reference for understanding <strong>WSL (Windows Subsystem for Linux)</strong> from fundamentals to daily workflows, including <strong>Bash vs PowerShell</strong>, <strong>WSL1 vs WSL2</strong>, filesystem interop, networking, performance, automation, and common recipes.</p>
+</blockquote>
+
+<hr />
+
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+  <li><a href="#1-first-principles">1. First Principles</a>
+    <ul>
+      <li><a href="#11-what-is-an-os-kernel-and-userspace">1.1 What is an OS, kernel, and userspace?</a></li>
+      <li><a href="#12-where-wsl-fits-in">1.2 Where WSL fits in</a></li>
+      <li><a href="#13-wsl1-vs-wsl2">1.3 WSL1 vs WSL2</a></li>
+    </ul>
+  </li>
+  <li><a href="#2-shells--environments">2. Shells &amp; Environments</a>
+    <ul>
+      <li><a href="#21-bash-linux-vs-powershell-windows">2.1 Bash (Linux) vs PowerShell (Windows)</a></li>
+      <li><a href="#22-profiles-bashrc-profile-powershell-profiles">2.2 Profiles: <code class="language-plaintext highlighter-rouge">.bashrc</code>, <code class="language-plaintext highlighter-rouge">.profile</code>, PowerShell profiles</a></li>
+      <li><a href="#23-environment-variables">2.3 Environment variables</a></li>
+    </ul>
+  </li>
+  <li><a href="#3-filesystems--paths">3. Filesystems &amp; Paths</a>
+    <ul>
+      <li><a href="#31-wsl-filesystem-vs-windows-drives">3.1 WSL filesystem vs Windows drives</a></li>
+      <li><a href="#32-performance--file-watching">3.2 Performance &amp; file-watching</a></li>
+      <li><a href="#33-line-endings--permissions">3.3 Line endings &amp; permissions</a></li>
+    </ul>
+  </li>
+  <li><a href="#4-processes-networking-interop">4. Processes, Networking, Interop</a>
+    <ul>
+      <li><a href="#41-running-windows-apps-from-wsl--vice-versa">4.1 Running Windows apps from WSL &amp; vice versa</a></li>
+      <li><a href="#42-networking-model">4.2 Networking model</a></li>
+      <li><a href="#43-clipboard--file-association-tips">4.3 Clipboard &amp; file association tips</a></li>
+    </ul>
+  </li>
+  <li><a href="#5-package-managers--toolchains">5. Package Managers &amp; Toolchains</a>
+    <ul>
+      <li><a href="#51-apt-vs-wingetchoco">5.1 apt vs winget/choco</a></li>
+      <li><a href="#52-compilers-build-tools-python-node-ruby">5.2 Compilers, build tools, Python, Node, Ruby</a></li>
+    </ul>
+  </li>
+  <li><a href="#6-git--projects">6. Git &amp; Projects</a>
+    <ul>
+      <li><a href="#61-where-to-clone-projects">6.1 Where to clone projects</a></li>
+      <li><a href="#62-git-config--crlf-handling">6.2 Git config &amp; CRLF handling</a></li>
+    </ul>
+  </li>
+  <li><a href="#7-daily-recipes-copy-paste-friendly">7. Daily Recipes (Copy-Paste Friendly)</a></li>
+  <li><a href="#8-troubleshooting--diagnostics">8. Troubleshooting &amp; Diagnostics</a></li>
+  <li><a href="#9-security--backups">9. Security &amp; Backups</a></li>
+  <li><a href="#10-comparative-analysis-quick-reference">10. Comparative Analysis (Quick Reference)</a></li>
+  <li><a href="#11-glossary">11. Glossary</a></li>
+  <li><a href="#12-further-reading">12. Further Reading</a></li>
+  <li><a href="#appendix-a-personal-setup-checklists">Appendix A: Personal Setup Checklists</a></li>
+  <li><a href="#appendix-b-snippets">Appendix B: Snippets</a></li>
+</ul>
+
+<hr />
+
+<h2 id="1-first-principles">1. First Principles</h2>
+
+<h3 id="11-what-is-an-os-kernel-and-userspace">1.1 What is an OS, kernel, and userspace?</h3>
+<ul>
+  <li><strong>Kernel:</strong> manages hardware, processes, memory, filesystems, networking.</li>
+  <li><strong>Userspace:</strong> shells, tools, libraries, apps.</li>
+  <li><strong>Linux vs Windows:</strong> different kernels → different system calls &amp; tooling.</li>
+</ul>
+
+<blockquote>
+  <p>Add notes/examples:</p>
+  <ul class="task-list">
+    <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />Example: <code class="language-plaintext highlighter-rouge">strace</code> (Linux) vs Process Monitor (Windows)</li>
+    <li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled" />Syscalls vs Win32 APIs</li>
+  </ul>
+</blockquote>
+
+<h3 id="12-where-wsl-fits-in">1.2 Where WSL fits in</h3>
+<ul>
+  <li><strong>WSL</strong> = run a <strong>Linux userspace</strong> on Windows.</li>
+  <li><strong>WSL1:</strong> syscall translation layer → Linux syscalls translated to Windows kernel calls.</li>
+  <li><strong>WSL2:</strong> lightweight VM running a real Linux kernel → higher compatibility/perf, different networking/filesystem behavior.</li>
+</ul>
+
+<h3 id="13-wsl1-vs-wsl2">1.3 WSL1 vs WSL2</h3>
+<p>| Aspect | WSL1 | WSL2 |
+|—|—|—|
+| Kernel | Translation layer | Real Linux kernel (in a managed VM) |
+| FS Perf (Linux home) | N/A | Fast |
+| FS Perf (<code class="language-plaintext highlighter-rouge">/mnt/c/...</code>) | Generally fast | Slower; use for <em>access</em>, not hot dev |
+| Inotify/File watch | Bridged | Native in Linux FS; flaky on <code class="language-plaintext highlighter-rouge">/mnt/*</code> |
+| Networking | Shares host IP | NAT/virtualized; different IP |
+| Compatibility | Good, not perfect | Very high |</p>
+
+<blockquote>
+  <p>Choose <strong>WSL2</strong> for most dev. Keep repos in <strong><code class="language-plaintext highlighter-rouge">~/</code></strong> (Linux FS). Use <code class="language-plaintext highlighter-rouge">/mnt/*</code> for occasional access to Windows files.</p>
+</blockquote>
+
+<hr />
+
+<h2 id="2-shells--environments">2. Shells &amp; Environments</h2>
+
+<h3 id="21-bash-linux-vs-powershell-windows">2.1 Bash (Linux) vs PowerShell (Windows)</h3>
+<p>| Topic | Bash | PowerShell |
+|—|—|—|
+| Prompt style | <code class="language-plaintext highlighter-rouge">$</code> | <code class="language-plaintext highlighter-rouge">PS C:\&gt;</code> |
+| Scripting | <code class="language-plaintext highlighter-rouge">#!/usr/bin/env bash</code> | <code class="language-plaintext highlighter-rouge">.ps1</code>, PowerShell syntax |
+| Env var set | <code class="language-plaintext highlighter-rouge">FOO=bar cmd</code> or <code class="language-plaintext highlighter-rouge">export FOO=bar</code> | <code class="language-plaintext highlighter-rouge">$env:FOO='bar'; cmd</code> |
+| Path sep | <code class="language-plaintext highlighter-rouge">/home/user</code> | <code class="language-plaintext highlighter-rouge">C:\Users\User</code> |
+| Pipe objects? | Text streams | .NET objects |</p>
+
+<blockquote>
+  <p>Use <strong>Bash inside WSL</strong> for Linux tooling &amp; package managers; <strong>PowerShell</strong> for Windows-side automation.</p>
+</blockquote>
+
+<h3 id="22-profiles-bashrc-profile-powershell-profiles">2.2 Profiles: <code class="language-plaintext highlighter-rouge">.bashrc</code>, <code class="language-plaintext highlighter-rouge">.profile</code>, PowerShell profiles</h3>
+<ul>
+  <li><strong><code class="language-plaintext highlighter-rouge">~/.bashrc</code></strong>: runs for interactive Bash shells; good for aliases, exports.</li>
+  <li><strong><code class="language-plaintext highlighter-rouge">~/.profile</code> / <code class="language-plaintext highlighter-rouge">~/.bash_profile</code></strong>: login shell config.</li>
+  <li><strong>PowerShell profile</strong>: see <code class="language-plaintext highlighter-rouge">$PROFILE</code> for path; customize aliases &amp; functions.</li>
+</ul>
+
+<p>Common Bash additions:
+```bash</p>
+<h1 id="bashrc">~/.bashrc</h1>
+<p>export GEM_HOME=”$HOME/.gems”
+export PATH=”$HOME/.gems/bin:$PATH”
+alias ll=’ls -lah’
+alias jserve=’bundle exec jekyll serve –livereload –drafts –future –force_polling’</p>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+
+
+        
+
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time class="dt-published" datetime="2025-10-15T00:00:00+05:30">October 15, 2025</time></p>
+
+      </footer>
+
+      
+
+      
+  <nav class="pagination">
+    
+      <a href="/notes/2025/10/15/Column-Store-(SoA).html" class="pagination--pager" title="Column Store (SoA)
+">Previous</a>
+    
+    
+      <a href="/notes/2025/10/15/cpplearnings.html" class="pagination--pager" title="CPP Learnings
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+      
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+
+    
+
+    
+      <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+    
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2025 <a href="https://p-dhanush.github.io">P-Dhanush</a>. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+
+
+
+
+
+  </body>
+</html>

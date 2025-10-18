@@ -1,0 +1,946 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.26.2 by Michael Rose
+  Copyright 2013-2024 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Column Store (SoA) - P-Dhanush</title>
+<meta name="description" content="Crypto L2 Analysis: Part 1 - Column Store Architecture     Crypto L2 Analysis: Part 1 - Column Store Architecture           Workflow                   Directory Structure           Strategy                           Obtaining the parameters involved. (Read Stage)               Writing out the parameters per our structure.                                               The actual code used in each file:                   colstore.hpp           ndjson_okx.hpp           okx_to_colstore.cpp                             Workflow  Taking OKX L2 Data for BTC - USDT in an NDJSON format, we convert the file types for faster parsing. Since this is market by price and not market by order, we have some limitations with what we can do with the data.  You can access the data here Take Order Book, spot data of depth 400. Any one day’s data would suffice for exploration.  To begin with we have two types of actions:    snapshot {&quot;instId&quot;:&quot;BTC-USDT&quot;,&quot;action&quot;:&quot;snapshot&quot;,&quot;ts&quot;:&quot;1758326400005&quot;,&quot;asks&quot;:[[&quot;115630.1&quot;,&quot;0.0145523&quot;,&quot;1&quot;],[&quot;115631.0&quot;,&quot;0.0539&quot;,&quot;1&quot;]...],&quot;bids:[[px,qty,cnt],...[px,qty,cnt]]}   update {&quot;instId&quot;:&quot;BTC-USDT&quot;,&quot;action&quot;:&quot;update&quot;,&quot;ts&quot;:&quot;1758326400015&quot;,&quot;asks&quot;:[[&quot;115717.8&quot;,&quot;0.18242079&quot;,&quot;6&quot;]],&quot;bids&quot;:[]}   For this stage of our implementation we focussing on converting the data into this structure:-      // A minimal, append-only columnar store with separate binary files per column.     // Layout:     //   outdir/     //     schema.json              (human readable schema)     //     columns/     //       frame.u64     //       ts_ms.u64                 (uint64 little-endian, ms since epoch)     //       side.u8                (0 = bid, 1 = ask)     //       etype.u8               (0 = SNAP, 1 = add, 2 = modify,3 = del, 4 = clear_bids, 5 = clear_asks)     //       level.u16              (0..N-1 within that frame)     //       px.f64                 (double price)     //       qty.f64                (double size, amt. actually held)     //       count.u32              (count, number of orders)     //       inst_id.txt            (one line: instrument name)     //     footer.json              ({&quot;rows&quot;: &lt;N&gt;})     // All files are append-only; caller is responsible for writing a consistent number of rows across columns.   Directory Structure include - | |__mercury // (I named my project mercury) | | | |__colstore.hpp | |__ndjson_okx.hpp | |__src | |__colstore_inspect.cpp | |__okx_to_colstore.cpp   Strategy  Obtaining the parameters involved. (Read Stage)         ----------------------        |                      |      ---|       PARSER         |     |  |----------------------|     |     |  |- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]      |--|- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]     |  |- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]     |      |  |- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]     |--|- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]        |- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]   To keep in mind the possibility of a dynamic use-case of the parameters we obtain, we dont hardcode what we do with the obtained parameters in the PARSER function itself. Instead we send a lambda function in the PARSER function.  // The parse function structure in the header file -&gt; template &lt;class F&gt; inline void parse_okx_ndjson(const std::string &amp;path, F &amp;&amp;on_record) {...}  // The parse function we call -&gt; mercury::parse_okx_ndjson(in_path,          [&amp;](uint64_t ts_ms, uint8_t side, uint16_t level, double px, double qty, uint32_t count)         {             // Skip empty quantities (deletes will appear as qty=0 in some datasets)             if (qty &lt;= 0.0)                 return;             writer.append(frame, ts_ms, side, level, px, qty, count);             ++emitted;             if ((emitted % 1&#39;000&#39;000) == 0)             {                 cerr &lt;&lt; &quot;… &quot; &lt;&lt; emitted &lt;&lt; &quot; rows written\n&quot;;             }          }         );          writer.close();         cout &lt;&lt; &quot;Wrote &quot; &lt;&lt; writer.rows() &lt;&lt; &quot; rows to &quot; &lt;&lt; outdir &lt;&lt; &quot;\n&quot;;   Writing out the parameters per our structure.  The writer function seen above is to write the parameters we obtain down into our files.     We configure a path where we can create our output columns.   Create a ColWriter class with an apt constructor to open files on initilaizing. This can bring down overhead.   We then use functions to write the parameters we’ve extracted into these files. The lambda funciton earlier takes care of this. We simply provide an apt append funciton to aid this process.   struct Files{   std::FILE *frame = nullptr;   std::FILE *ts_ms = nullptr;   std::FILE *side = nullptr;   std::FILE *level = nullptr;   std::FILE *px = nullptr;   std::FILE *qty = nullptr;   std::FILE *count = nullptr;   fs::path dir;   uint64_t rows = 0; } class ColWriter{   public:     // The constructor function will open up all the files.     explicit ColWriter(filestream::path outdir, ) -&gt; outdir_(sd::move(outdir)){       check_directory_present(outdir); // if not the func will take care of creating.       auto cols = outdir_ / &quot;columns&quot;;       check_directory_present(cols);        files_.dir = outdir_;       files_.frame = open_or_throw(cols / &quot;frame.u64&quot;);       files_.ts_ms = open_or_throw(cols / &quot;ts_ms.u64&quot;);       files_.side = open_or_throw(cols / &quot;side.u8&quot;);       // You get the idea.. (open all similarly, leaving for brevity)       }      ~ColWriter{       close();     }      ColWriter(const ColWriter &amp;) = delete;     ColWriter &amp;operator=(const ColWriter &amp;) = delete;      void append(uint64_t frame, uint64_t ts_ms, uint8_t side, uint16_t level, double px, double qty, uint32_t count){       write_scalar(files_.frame, frame);       write_scalar(files_.ts_ms, ts_ms);       // so on..     }      void safe_close(std::FILE*&amp; f){ // A reference to the pointer. We want to set caller&#39;s pointer varaible to nullptr, so we can&#39;t let the pointer be passed by value and need actual pointer.          if(f){           std::fclose(f);           f = nullptr;         }     }      void close(){       if(closed_){         return;       }        safe_close(files_.frame);       safe_close(files_.ts_ms);       //so on..     }      private:     filestream::path outdir_;     Files files_{};  }   The actual code used in each file:  colstore.hpp #ifndef MERCURY_COLSTORE_HPP #define MERCURY_COLSTORE_HPP  #include &lt;cstdint&gt; #include &lt;cstdio&gt; #include &lt;cstring&gt; #include &lt;string&gt; #include &lt;string_view&gt; #include &lt;vector&gt; #include &lt;filesystem&gt; namespace fs = std::filesystem;  #include &lt;stdexcept&gt; #include &lt;memory&gt; #include &lt;system_error&gt; #include &lt;optional&gt; #include &lt;fstream&gt;  namespace mercury {     struct ColFiles     {         std::FILE *frame = nullptr;         std::FILE *ts_ms = nullptr;         std::FILE *side = nullptr;         std::FILE *level = nullptr;         std::FILE *px = nullptr;         std::FILE *qty = nullptr;         std::FILE *count = nullptr;         fs::path dir;         uint64_t rows = 0;     };      inline void ensure_dir(const fs::path &amp;p)     {         std::error_code ec;         if (!fs::exists(p) &amp;&amp; !fs::create_directories(p, ec))         {             throw std::runtime_error(&quot;Failed to create directory: &quot; + p.string() + &quot;, error: &quot; + ec.message());         }     }      inline std::FILE *open_or_throw(const fs::path &amp;p)     {         auto f = std::fopen(p.string().c_str(), &quot;wb&quot;);         if (!f)             throw std::runtime_error(&quot;Failed to open for write: &quot; + p.string());         return f;     }      class ColWriter     {     public:         explicit ColWriter(fs::path outdir, std::string_view inst_id)             : outdir_(std::move(outdir))         {             if (inst_id.empty())                 throw std::invalid_argument(&quot;inst_id is empty&quot;);             // dirs             ensure_dir(outdir_);             auto cols = outdir_ / &quot;columns&quot;;             ensure_dir(cols);              // schema             {                 std::ofstream s(outdir_ / &quot;schema.json&quot;, std::ios::binary);                 s &lt;&lt; &quot;{&quot;                      &quot;\&quot;version\&quot;: 1,&quot;                      &quot;\&quot;columns\&quot;: [&quot;                      &quot;{\&quot;name\&quot;: \&quot;frame\&quot;,   \&quot;type\&quot;: \&quot;u64\&quot;, \&quot;unit\&quot;: \&quot;integer - a count\&quot;},&quot;                      &quot;{\&quot;name\&quot;: \&quot;ts_ms\&quot;,   \&quot;type\&quot;: \&quot;u64\&quot;, \&quot;unit\&quot;: \&quot;ns\&quot;},&quot;                      &quot;{\&quot;name\&quot;: \&quot;side\&quot;, \&quot;type\&quot;: \&quot;u8\&quot;,  \&quot;desc\&quot;: \&quot;0=bid,1=ask\&quot;},&quot;                      &quot;{\&quot;name\&quot;: \&quot;level\&quot;,\&quot;type\&quot;: \&quot;u16\&quot;},&quot;                      &quot;{\&quot;name\&quot;: \&quot;px\&quot;,   \&quot;type\&quot;: \&quot;f64\&quot;},&quot;                      &quot;{\&quot;name\&quot;: \&quot;qty\&quot;,  \&quot;type\&quot;: \&quot;f64\&quot;},&quot;                      &quot;{\&quot;name\&quot;: \&quot;count\&quot;,  \&quot;type\&quot;: \&quot;u32\&quot;, \&quot;desc\&quot;: \&quot;number of orders\&quot;}&quot;                      &quot;]&quot;                      &quot;}&quot;;             }              // inst id             {                 std::ofstream idf(cols / &quot;inst_id.txt&quot;, std::ios::binary);                 idf &lt;&lt; inst_id;             }              files_.dir = outdir_;             files_.frame = open_or_throw(cols / &quot;frame.u64&quot;);             files_.ts_ms = open_or_throw(cols / &quot;ts_ms.u64&quot;);             files_.side = open_or_throw(cols / &quot;side.u8&quot;);             files_.level = open_or_throw(cols / &quot;level.u16&quot;);             files_.px = open_or_throw(cols / &quot;px.f64&quot;);             files_.qty = open_or_throw(cols / &quot;qty.f64&quot;);             files_.count = open_or_throw(cols / &quot;count.u32&quot;);         }          ~ColWriter()         {             close();         }          ColWriter(const ColWriter &amp;) = delete;         ColWriter &amp;operator=(const ColWriter &amp;) = delete;          void append(uint64_t frame, uint64_t ts_ms, uint8_t side, uint16_t level, double px, double qty, uint32_t count)         {             write_scalar(files_.frame, frame);             write_scalar(files_.ts_ms, ts_ms);             write_scalar(files_.side, side);             write_scalar(files_.level, level);             write_scalar(files_.px, px);             write_scalar(files_.qty, qty);             write_scalar(files_.count, count);             ++files_.rows;         }         void safe_close(std::FILE *&amp;f)         {             if (f)             {                 std::fclose(f);                 f = nullptr;             }         }         void close()         {             if (closed_)                 return;             safe_close(files_.frame);             safe_close(files_.ts_ms);             safe_close(files_.side);             safe_close(files_.level);             safe_close(files_.px);             safe_close(files_.qty);             safe_close(files_.count);              // footer             try             {                 std::ofstream f(outdir_ / &quot;footer.json&quot;, std::ios::binary);                 f &lt;&lt; &quot;{\&quot;rows\&quot;: &quot; &lt;&lt; files_.rows &lt;&lt; &quot;}&quot;;             }             catch (...)             {             }              closed_ = true;         }          uint64_t rows() const { return files_.rows; }      private:         template &lt;class T&gt;         static void write_scalar(std::FILE *f, const T &amp;v)         {             if (std::fwrite(&amp;v, sizeof(T), 1, f) != 1)             {                 throw std::runtime_error(&quot;colstore write failed&quot;);             }         }          fs::path outdir_;         ColFiles files_{};         bool closed_ = false;     };  #ifdef _WIN32 #include &lt;windows.h&gt; #else #include &lt;sys/mman.h&gt; #include &lt;fcntl.h&gt; #include &lt;unistd.h&gt; #endif      struct MMap     {         uint8_t *ptr = nullptr;         size_t len = 0;         static MMap map(const fs::path &amp;p)         {             MMap m;             // Portable fallback: read whole file into memory (fast enough for inspection)             std::ifstream in(p, std::ios::binary);             if (!in)                 throw std::runtime_error(&quot;open failed: &quot; + p.string());             in.seekg(0, std::ios::end);             m.len = static_cast&lt;size_t&gt;(in.tellg());             in.seekg(0);             m.ptr = static_cast&lt;uint8_t *&gt;(std::malloc(m.len));             if (!m.ptr)                 throw std::bad_alloc();             in.read(reinterpret_cast&lt;char *&gt;(m.ptr), m.len);             return m;         }         void unmap()         {             if (ptr)             {                 std::free(ptr);                 ptr = nullptr;                 len = 0;             }         }     };  } // namespace mercury  #endif // MERCURY_COLSTORE_HPP   ndjson_okx.hpp #ifndef MERCURY_NDJSON_OKX_HPP #define MERCURY_NDJSON_OKX_HPP  #include &lt;string&gt; #include &lt;string_view&gt; #include &lt;cstdint&gt; #include &lt;stdexcept&gt; #include &lt;simdjson.h&gt;  namespace mercury {      // One JSON line -&gt; many rows (one per tuple in bids/asks).     // on_record signature expected: void(uint64_t ts_ms, uint8_t side, uint16_t level,     ///                                   double px, double qty, uint32_t count)      template &lt;class F1, class F2&gt;     inline void parse_okx_ndjson(const std::string &amp;path, F1 &amp;&amp;on_record, F2 &amp;frame_id, uint64_t &amp;row_limit)     {         using namespace simdjson;         bool continue_parsing = true;         ondemand::parser parser;         auto doc_result = padded_string::load(path);         if (doc_result.error())         {             throw std::runtime_error(&quot;Failed to load file: &quot; + path);         }         padded_string &amp;doc = doc_result.value();          uint64_t emitted = 0;          auto stream_res = parser.iterate_many(doc);         ondemand::document_stream stream = std::move(stream_res).value();         for (simdjson::ondemand::document_reference d : stream)         {             frame_id++; // &lt;- increment per JSON line             if (d.type().value() != simdjson::ondemand::json_type::object)                 continue;             auto obj = d.get_object().value();              // ts may be string or number (OKX gives ms)             uint64_t ts_ms = 0;              if (auto ts_it = obj.find_field_unordered(&quot;ts&quot;); ts_it.error() == SUCCESS)             {                 auto v = ts_it.value();                 if (v.type().value() == ondemand::json_type::string)                 {                     std::string s = std::string(v.get_string().value());                     ts_ms = static_cast&lt;uint64_t&gt;(std::strtoull(s.c_str(), nullptr, 10));                 }                 else                 {                     ts_ms = uint64_t(v.get_uint64().value());                 }             }              auto maybe_stop = [&amp;](void) -&gt; bool             {                 if (row_limit == 0)                     return false;                 return emitted &gt;= row_limit;             };              // helper: emit one row per [px, qty, count?] tuple             auto push_side = [&amp;](ondemand::value arr_val, uint8_t side)             {                 if (arr_val.type().value() != ondemand::json_type::array)                     return;                 ondemand::array arr = arr_val.get_array().value();                 uint16_t level = 0;                 for (auto lvl_res : arr)                 {                     ondemand::value lvl_v = lvl_res.value();                     if (lvl_v.type().value() != ondemand::json_type::array)                     {                         ++level;                         continue;                     }                     ondemand::array triple = lvl_v.get_array().value();                      double px = 0.0;                     double qty = 0.0;                     uint32_t count = 0;                       size_t idx = 0;                     for (auto c_res : triple)                     {                         auto c = c_res.value();                         if (idx == 0)                         {                             if (c.type().value() == ondemand::json_type::string)                             {                                 std::string s = std::string(c.get_string().value());                                 px = std::strtod(s.c_str(), nullptr);                             }                             else                             {                                 px = double(c.get_double().value());                             }                         }                         else if (idx == 1)                         {                             if (c.type().value() == ondemand::json_type::string)                             {                                 std::string s = std::string(c.get_string().value());                                 qty = std::strtod(s.c_str(), nullptr);                             }                             else                             {                                 qty = double(c.get_double().value());                             }                         }                         else if (idx == 2)                         {                             if (c.type().value() == ondemand::json_type::string)                             {                                 std::string s = std::string(c.get_string().value());                                 count = static_cast&lt;uint32_t&gt;(std::strtoul(s.c_str(), nullptr, 10));                             }                             else                             {                                 // Some venues encode counts as integers but ondemand lets us fetch as uint64                                 count = static_cast&lt;uint32_t&gt;(c.get_uint64().value());                             }                         }                         ++idx;                     }                      on_record(ts_ms, side, level, px, qty, count);                      if (maybe_stop())                     {                         continue_parsing = false;                         break;                     }                     ++level;                     ++emitted;                 }             };              // bids / b             if (auto it = obj.find_field_unordered(&quot;bids&quot;); it.error() == SUCCESS)             {                 push_side(it.value(), /*side=*/0);             }             else if (auto it2 = obj.find_field_unordered(&quot;b&quot;); it2.error() == SUCCESS)             {                 push_side(it2.value(), /*side=*/0);             }              // asks / a             if (auto it = obj.find_field_unordered(&quot;asks&quot;); it.error() == SUCCESS)             {                 push_side(it.value(), /*side=*/1);             }             else if (auto it2 = obj.find_field_unordered(&quot;a&quot;); it2.error() == SUCCESS)             {                 push_side(it2.value(), /*side=*/1);             }             if (!continue_parsing)             {                 break;             }         }     }  } // namespace mercury  #endif // MERCURY_NDJSON_OKX_HPP   okx_to_colstore.cpp #include &lt;iostream&gt; #include &lt;filesystem&gt; #include &lt;string&gt; #include &lt;string_view&gt; #include &lt;cstdlib&gt;  #include &lt;simdjson.h&gt; #include &quot;mercury/colstore.hpp&quot; #include &quot;mercury/ndjson_okx.hpp&quot;  using namespace std;  int main(int argc, char **argv) {     if (argc &lt; 4)     {         cerr &lt;&lt; &quot;Usage: okx_to_colstore &lt;input.data&gt; &lt;out_dir&gt; &lt;instId&gt;\n&quot;;         cerr &lt;&lt; &quot;Example: okx_to_colstore BTC-USDT-L2orderbook-400lv-2025-09-20.data out/BTC-USDT BTC-USDT\n&quot;;         return 1;     }     const string in_path = argv[1];     const filesystem::path outdir = argv[2];     const string inst_id = argv[3];     uint64_t row_limit = 0;     if (argc &gt;= 5)     {         row_limit = std::strtoull(argv[4], nullptr, 10);     }      try     {         mercury::ColWriter writer(outdir, inst_id);          size_t emitted = 0;         uint64_t frame = 0;          mercury::parse_okx_ndjson(in_path, [&amp;](uint64_t ts_ms, uint8_t side, uint16_t level, double px, double qty, uint32_t count)                                   {                                       if (qty &lt;= 0.0)                                           return;                                       writer.append(frame, ts_ms, side, level, px, qty, count);                                       ++emitted;                                       if ((emitted % 1&#39;000&#39;000) == 0)                                       {                                           cerr &lt;&lt; &quot;… &quot; &lt;&lt; emitted &lt;&lt; &quot; rows written\n&quot;;                                       } }, frame, row_limit);          writer.close();         cout &lt;&lt; &quot;Wrote &quot; &lt;&lt; writer.rows() &lt;&lt; &quot; rows to &quot; &lt;&lt; outdir &lt;&lt; &quot;\n&quot;;     }     catch (const std::exception &amp;e)     {         cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;         return 2;     }     return 0; }">
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="P-Dhanush">
+<meta property="og:title" content="Column Store (SoA)">
+<meta property="og:url" content="https://p-dhanush.github.io/notes/2025/10/15/Column-Store-(SoA).html">
+
+
+  <meta property="og:description" content="Crypto L2 Analysis: Part 1 - Column Store Architecture     Crypto L2 Analysis: Part 1 - Column Store Architecture           Workflow                   Directory Structure           Strategy                           Obtaining the parameters involved. (Read Stage)               Writing out the parameters per our structure.                                               The actual code used in each file:                   colstore.hpp           ndjson_okx.hpp           okx_to_colstore.cpp                             Workflow  Taking OKX L2 Data for BTC - USDT in an NDJSON format, we convert the file types for faster parsing. Since this is market by price and not market by order, we have some limitations with what we can do with the data.  You can access the data here Take Order Book, spot data of depth 400. Any one day’s data would suffice for exploration.  To begin with we have two types of actions:    snapshot {&quot;instId&quot;:&quot;BTC-USDT&quot;,&quot;action&quot;:&quot;snapshot&quot;,&quot;ts&quot;:&quot;1758326400005&quot;,&quot;asks&quot;:[[&quot;115630.1&quot;,&quot;0.0145523&quot;,&quot;1&quot;],[&quot;115631.0&quot;,&quot;0.0539&quot;,&quot;1&quot;]...],&quot;bids:[[px,qty,cnt],...[px,qty,cnt]]}   update {&quot;instId&quot;:&quot;BTC-USDT&quot;,&quot;action&quot;:&quot;update&quot;,&quot;ts&quot;:&quot;1758326400015&quot;,&quot;asks&quot;:[[&quot;115717.8&quot;,&quot;0.18242079&quot;,&quot;6&quot;]],&quot;bids&quot;:[]}   For this stage of our implementation we focussing on converting the data into this structure:-      // A minimal, append-only columnar store with separate binary files per column.     // Layout:     //   outdir/     //     schema.json              (human readable schema)     //     columns/     //       frame.u64     //       ts_ms.u64                 (uint64 little-endian, ms since epoch)     //       side.u8                (0 = bid, 1 = ask)     //       etype.u8               (0 = SNAP, 1 = add, 2 = modify,3 = del, 4 = clear_bids, 5 = clear_asks)     //       level.u16              (0..N-1 within that frame)     //       px.f64                 (double price)     //       qty.f64                (double size, amt. actually held)     //       count.u32              (count, number of orders)     //       inst_id.txt            (one line: instrument name)     //     footer.json              ({&quot;rows&quot;: &lt;N&gt;})     // All files are append-only; caller is responsible for writing a consistent number of rows across columns.   Directory Structure include - | |__mercury // (I named my project mercury) | | | |__colstore.hpp | |__ndjson_okx.hpp | |__src | |__colstore_inspect.cpp | |__okx_to_colstore.cpp   Strategy  Obtaining the parameters involved. (Read Stage)         ----------------------        |                      |      ---|       PARSER         |     |  |----------------------|     |     |  |- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]      |--|- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]     |  |- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]     |      |  |- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]     |--|- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]        |- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]   To keep in mind the possibility of a dynamic use-case of the parameters we obtain, we dont hardcode what we do with the obtained parameters in the PARSER function itself. Instead we send a lambda function in the PARSER function.  // The parse function structure in the header file -&gt; template &lt;class F&gt; inline void parse_okx_ndjson(const std::string &amp;path, F &amp;&amp;on_record) {...}  // The parse function we call -&gt; mercury::parse_okx_ndjson(in_path,          [&amp;](uint64_t ts_ms, uint8_t side, uint16_t level, double px, double qty, uint32_t count)         {             // Skip empty quantities (deletes will appear as qty=0 in some datasets)             if (qty &lt;= 0.0)                 return;             writer.append(frame, ts_ms, side, level, px, qty, count);             ++emitted;             if ((emitted % 1&#39;000&#39;000) == 0)             {                 cerr &lt;&lt; &quot;… &quot; &lt;&lt; emitted &lt;&lt; &quot; rows written\n&quot;;             }          }         );          writer.close();         cout &lt;&lt; &quot;Wrote &quot; &lt;&lt; writer.rows() &lt;&lt; &quot; rows to &quot; &lt;&lt; outdir &lt;&lt; &quot;\n&quot;;   Writing out the parameters per our structure.  The writer function seen above is to write the parameters we obtain down into our files.     We configure a path where we can create our output columns.   Create a ColWriter class with an apt constructor to open files on initilaizing. This can bring down overhead.   We then use functions to write the parameters we’ve extracted into these files. The lambda funciton earlier takes care of this. We simply provide an apt append funciton to aid this process.   struct Files{   std::FILE *frame = nullptr;   std::FILE *ts_ms = nullptr;   std::FILE *side = nullptr;   std::FILE *level = nullptr;   std::FILE *px = nullptr;   std::FILE *qty = nullptr;   std::FILE *count = nullptr;   fs::path dir;   uint64_t rows = 0; } class ColWriter{   public:     // The constructor function will open up all the files.     explicit ColWriter(filestream::path outdir, ) -&gt; outdir_(sd::move(outdir)){       check_directory_present(outdir); // if not the func will take care of creating.       auto cols = outdir_ / &quot;columns&quot;;       check_directory_present(cols);        files_.dir = outdir_;       files_.frame = open_or_throw(cols / &quot;frame.u64&quot;);       files_.ts_ms = open_or_throw(cols / &quot;ts_ms.u64&quot;);       files_.side = open_or_throw(cols / &quot;side.u8&quot;);       // You get the idea.. (open all similarly, leaving for brevity)       }      ~ColWriter{       close();     }      ColWriter(const ColWriter &amp;) = delete;     ColWriter &amp;operator=(const ColWriter &amp;) = delete;      void append(uint64_t frame, uint64_t ts_ms, uint8_t side, uint16_t level, double px, double qty, uint32_t count){       write_scalar(files_.frame, frame);       write_scalar(files_.ts_ms, ts_ms);       // so on..     }      void safe_close(std::FILE*&amp; f){ // A reference to the pointer. We want to set caller&#39;s pointer varaible to nullptr, so we can&#39;t let the pointer be passed by value and need actual pointer.          if(f){           std::fclose(f);           f = nullptr;         }     }      void close(){       if(closed_){         return;       }        safe_close(files_.frame);       safe_close(files_.ts_ms);       //so on..     }      private:     filestream::path outdir_;     Files files_{};  }   The actual code used in each file:  colstore.hpp #ifndef MERCURY_COLSTORE_HPP #define MERCURY_COLSTORE_HPP  #include &lt;cstdint&gt; #include &lt;cstdio&gt; #include &lt;cstring&gt; #include &lt;string&gt; #include &lt;string_view&gt; #include &lt;vector&gt; #include &lt;filesystem&gt; namespace fs = std::filesystem;  #include &lt;stdexcept&gt; #include &lt;memory&gt; #include &lt;system_error&gt; #include &lt;optional&gt; #include &lt;fstream&gt;  namespace mercury {     struct ColFiles     {         std::FILE *frame = nullptr;         std::FILE *ts_ms = nullptr;         std::FILE *side = nullptr;         std::FILE *level = nullptr;         std::FILE *px = nullptr;         std::FILE *qty = nullptr;         std::FILE *count = nullptr;         fs::path dir;         uint64_t rows = 0;     };      inline void ensure_dir(const fs::path &amp;p)     {         std::error_code ec;         if (!fs::exists(p) &amp;&amp; !fs::create_directories(p, ec))         {             throw std::runtime_error(&quot;Failed to create directory: &quot; + p.string() + &quot;, error: &quot; + ec.message());         }     }      inline std::FILE *open_or_throw(const fs::path &amp;p)     {         auto f = std::fopen(p.string().c_str(), &quot;wb&quot;);         if (!f)             throw std::runtime_error(&quot;Failed to open for write: &quot; + p.string());         return f;     }      class ColWriter     {     public:         explicit ColWriter(fs::path outdir, std::string_view inst_id)             : outdir_(std::move(outdir))         {             if (inst_id.empty())                 throw std::invalid_argument(&quot;inst_id is empty&quot;);             // dirs             ensure_dir(outdir_);             auto cols = outdir_ / &quot;columns&quot;;             ensure_dir(cols);              // schema             {                 std::ofstream s(outdir_ / &quot;schema.json&quot;, std::ios::binary);                 s &lt;&lt; &quot;{&quot;                      &quot;\&quot;version\&quot;: 1,&quot;                      &quot;\&quot;columns\&quot;: [&quot;                      &quot;{\&quot;name\&quot;: \&quot;frame\&quot;,   \&quot;type\&quot;: \&quot;u64\&quot;, \&quot;unit\&quot;: \&quot;integer - a count\&quot;},&quot;                      &quot;{\&quot;name\&quot;: \&quot;ts_ms\&quot;,   \&quot;type\&quot;: \&quot;u64\&quot;, \&quot;unit\&quot;: \&quot;ns\&quot;},&quot;                      &quot;{\&quot;name\&quot;: \&quot;side\&quot;, \&quot;type\&quot;: \&quot;u8\&quot;,  \&quot;desc\&quot;: \&quot;0=bid,1=ask\&quot;},&quot;                      &quot;{\&quot;name\&quot;: \&quot;level\&quot;,\&quot;type\&quot;: \&quot;u16\&quot;},&quot;                      &quot;{\&quot;name\&quot;: \&quot;px\&quot;,   \&quot;type\&quot;: \&quot;f64\&quot;},&quot;                      &quot;{\&quot;name\&quot;: \&quot;qty\&quot;,  \&quot;type\&quot;: \&quot;f64\&quot;},&quot;                      &quot;{\&quot;name\&quot;: \&quot;count\&quot;,  \&quot;type\&quot;: \&quot;u32\&quot;, \&quot;desc\&quot;: \&quot;number of orders\&quot;}&quot;                      &quot;]&quot;                      &quot;}&quot;;             }              // inst id             {                 std::ofstream idf(cols / &quot;inst_id.txt&quot;, std::ios::binary);                 idf &lt;&lt; inst_id;             }              files_.dir = outdir_;             files_.frame = open_or_throw(cols / &quot;frame.u64&quot;);             files_.ts_ms = open_or_throw(cols / &quot;ts_ms.u64&quot;);             files_.side = open_or_throw(cols / &quot;side.u8&quot;);             files_.level = open_or_throw(cols / &quot;level.u16&quot;);             files_.px = open_or_throw(cols / &quot;px.f64&quot;);             files_.qty = open_or_throw(cols / &quot;qty.f64&quot;);             files_.count = open_or_throw(cols / &quot;count.u32&quot;);         }          ~ColWriter()         {             close();         }          ColWriter(const ColWriter &amp;) = delete;         ColWriter &amp;operator=(const ColWriter &amp;) = delete;          void append(uint64_t frame, uint64_t ts_ms, uint8_t side, uint16_t level, double px, double qty, uint32_t count)         {             write_scalar(files_.frame, frame);             write_scalar(files_.ts_ms, ts_ms);             write_scalar(files_.side, side);             write_scalar(files_.level, level);             write_scalar(files_.px, px);             write_scalar(files_.qty, qty);             write_scalar(files_.count, count);             ++files_.rows;         }         void safe_close(std::FILE *&amp;f)         {             if (f)             {                 std::fclose(f);                 f = nullptr;             }         }         void close()         {             if (closed_)                 return;             safe_close(files_.frame);             safe_close(files_.ts_ms);             safe_close(files_.side);             safe_close(files_.level);             safe_close(files_.px);             safe_close(files_.qty);             safe_close(files_.count);              // footer             try             {                 std::ofstream f(outdir_ / &quot;footer.json&quot;, std::ios::binary);                 f &lt;&lt; &quot;{\&quot;rows\&quot;: &quot; &lt;&lt; files_.rows &lt;&lt; &quot;}&quot;;             }             catch (...)             {             }              closed_ = true;         }          uint64_t rows() const { return files_.rows; }      private:         template &lt;class T&gt;         static void write_scalar(std::FILE *f, const T &amp;v)         {             if (std::fwrite(&amp;v, sizeof(T), 1, f) != 1)             {                 throw std::runtime_error(&quot;colstore write failed&quot;);             }         }          fs::path outdir_;         ColFiles files_{};         bool closed_ = false;     };  #ifdef _WIN32 #include &lt;windows.h&gt; #else #include &lt;sys/mman.h&gt; #include &lt;fcntl.h&gt; #include &lt;unistd.h&gt; #endif      struct MMap     {         uint8_t *ptr = nullptr;         size_t len = 0;         static MMap map(const fs::path &amp;p)         {             MMap m;             // Portable fallback: read whole file into memory (fast enough for inspection)             std::ifstream in(p, std::ios::binary);             if (!in)                 throw std::runtime_error(&quot;open failed: &quot; + p.string());             in.seekg(0, std::ios::end);             m.len = static_cast&lt;size_t&gt;(in.tellg());             in.seekg(0);             m.ptr = static_cast&lt;uint8_t *&gt;(std::malloc(m.len));             if (!m.ptr)                 throw std::bad_alloc();             in.read(reinterpret_cast&lt;char *&gt;(m.ptr), m.len);             return m;         }         void unmap()         {             if (ptr)             {                 std::free(ptr);                 ptr = nullptr;                 len = 0;             }         }     };  } // namespace mercury  #endif // MERCURY_COLSTORE_HPP   ndjson_okx.hpp #ifndef MERCURY_NDJSON_OKX_HPP #define MERCURY_NDJSON_OKX_HPP  #include &lt;string&gt; #include &lt;string_view&gt; #include &lt;cstdint&gt; #include &lt;stdexcept&gt; #include &lt;simdjson.h&gt;  namespace mercury {      // One JSON line -&gt; many rows (one per tuple in bids/asks).     // on_record signature expected: void(uint64_t ts_ms, uint8_t side, uint16_t level,     ///                                   double px, double qty, uint32_t count)      template &lt;class F1, class F2&gt;     inline void parse_okx_ndjson(const std::string &amp;path, F1 &amp;&amp;on_record, F2 &amp;frame_id, uint64_t &amp;row_limit)     {         using namespace simdjson;         bool continue_parsing = true;         ondemand::parser parser;         auto doc_result = padded_string::load(path);         if (doc_result.error())         {             throw std::runtime_error(&quot;Failed to load file: &quot; + path);         }         padded_string &amp;doc = doc_result.value();          uint64_t emitted = 0;          auto stream_res = parser.iterate_many(doc);         ondemand::document_stream stream = std::move(stream_res).value();         for (simdjson::ondemand::document_reference d : stream)         {             frame_id++; // &lt;- increment per JSON line             if (d.type().value() != simdjson::ondemand::json_type::object)                 continue;             auto obj = d.get_object().value();              // ts may be string or number (OKX gives ms)             uint64_t ts_ms = 0;              if (auto ts_it = obj.find_field_unordered(&quot;ts&quot;); ts_it.error() == SUCCESS)             {                 auto v = ts_it.value();                 if (v.type().value() == ondemand::json_type::string)                 {                     std::string s = std::string(v.get_string().value());                     ts_ms = static_cast&lt;uint64_t&gt;(std::strtoull(s.c_str(), nullptr, 10));                 }                 else                 {                     ts_ms = uint64_t(v.get_uint64().value());                 }             }              auto maybe_stop = [&amp;](void) -&gt; bool             {                 if (row_limit == 0)                     return false;                 return emitted &gt;= row_limit;             };              // helper: emit one row per [px, qty, count?] tuple             auto push_side = [&amp;](ondemand::value arr_val, uint8_t side)             {                 if (arr_val.type().value() != ondemand::json_type::array)                     return;                 ondemand::array arr = arr_val.get_array().value();                 uint16_t level = 0;                 for (auto lvl_res : arr)                 {                     ondemand::value lvl_v = lvl_res.value();                     if (lvl_v.type().value() != ondemand::json_type::array)                     {                         ++level;                         continue;                     }                     ondemand::array triple = lvl_v.get_array().value();                      double px = 0.0;                     double qty = 0.0;                     uint32_t count = 0;                       size_t idx = 0;                     for (auto c_res : triple)                     {                         auto c = c_res.value();                         if (idx == 0)                         {                             if (c.type().value() == ondemand::json_type::string)                             {                                 std::string s = std::string(c.get_string().value());                                 px = std::strtod(s.c_str(), nullptr);                             }                             else                             {                                 px = double(c.get_double().value());                             }                         }                         else if (idx == 1)                         {                             if (c.type().value() == ondemand::json_type::string)                             {                                 std::string s = std::string(c.get_string().value());                                 qty = std::strtod(s.c_str(), nullptr);                             }                             else                             {                                 qty = double(c.get_double().value());                             }                         }                         else if (idx == 2)                         {                             if (c.type().value() == ondemand::json_type::string)                             {                                 std::string s = std::string(c.get_string().value());                                 count = static_cast&lt;uint32_t&gt;(std::strtoul(s.c_str(), nullptr, 10));                             }                             else                             {                                 // Some venues encode counts as integers but ondemand lets us fetch as uint64                                 count = static_cast&lt;uint32_t&gt;(c.get_uint64().value());                             }                         }                         ++idx;                     }                      on_record(ts_ms, side, level, px, qty, count);                      if (maybe_stop())                     {                         continue_parsing = false;                         break;                     }                     ++level;                     ++emitted;                 }             };              // bids / b             if (auto it = obj.find_field_unordered(&quot;bids&quot;); it.error() == SUCCESS)             {                 push_side(it.value(), /*side=*/0);             }             else if (auto it2 = obj.find_field_unordered(&quot;b&quot;); it2.error() == SUCCESS)             {                 push_side(it2.value(), /*side=*/0);             }              // asks / a             if (auto it = obj.find_field_unordered(&quot;asks&quot;); it.error() == SUCCESS)             {                 push_side(it.value(), /*side=*/1);             }             else if (auto it2 = obj.find_field_unordered(&quot;a&quot;); it2.error() == SUCCESS)             {                 push_side(it2.value(), /*side=*/1);             }             if (!continue_parsing)             {                 break;             }         }     }  } // namespace mercury  #endif // MERCURY_NDJSON_OKX_HPP   okx_to_colstore.cpp #include &lt;iostream&gt; #include &lt;filesystem&gt; #include &lt;string&gt; #include &lt;string_view&gt; #include &lt;cstdlib&gt;  #include &lt;simdjson.h&gt; #include &quot;mercury/colstore.hpp&quot; #include &quot;mercury/ndjson_okx.hpp&quot;  using namespace std;  int main(int argc, char **argv) {     if (argc &lt; 4)     {         cerr &lt;&lt; &quot;Usage: okx_to_colstore &lt;input.data&gt; &lt;out_dir&gt; &lt;instId&gt;\n&quot;;         cerr &lt;&lt; &quot;Example: okx_to_colstore BTC-USDT-L2orderbook-400lv-2025-09-20.data out/BTC-USDT BTC-USDT\n&quot;;         return 1;     }     const string in_path = argv[1];     const filesystem::path outdir = argv[2];     const string inst_id = argv[3];     uint64_t row_limit = 0;     if (argc &gt;= 5)     {         row_limit = std::strtoull(argv[4], nullptr, 10);     }      try     {         mercury::ColWriter writer(outdir, inst_id);          size_t emitted = 0;         uint64_t frame = 0;          mercury::parse_okx_ndjson(in_path, [&amp;](uint64_t ts_ms, uint8_t side, uint16_t level, double px, double qty, uint32_t count)                                   {                                       if (qty &lt;= 0.0)                                           return;                                       writer.append(frame, ts_ms, side, level, px, qty, count);                                       ++emitted;                                       if ((emitted % 1&#39;000&#39;000) == 0)                                       {                                           cerr &lt;&lt; &quot;… &quot; &lt;&lt; emitted &lt;&lt; &quot; rows written\n&quot;;                                       } }, frame, row_limit);          writer.close();         cout &lt;&lt; &quot;Wrote &quot; &lt;&lt; writer.rows() &lt;&lt; &quot; rows to &quot; &lt;&lt; outdir &lt;&lt; &quot;\n&quot;;     }     catch (const std::exception &amp;e)     {         cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;         return 2;     }     return 0; }">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2025-10-15T00:00:00+05:30">
+
+
+
+
+
+
+<link rel="canonical" href="https://p-dhanush.github.io/notes/2025/10/15/Column-Store-(SoA).html">
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+
+  <link href="/feed.xml" type="application/atom+xml" rel="alternate" title="P-Dhanush Feed">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script type="text/javascript">
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+  
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css"></noscript>
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          P-Dhanush
+          
+        </a>
+        <ul class="visible-links"></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+  
+    
+      
+      
+      
+      
+    
+    
+      <nav class="nav__list">
+  
+  <input id="ac-toc" name="accordion-toc" type="checkbox" />
+  <label for="ac-toc">Toggle Menu</label>
+  <ul class="nav__items">
+    
+      
+      
+        <li>
+          
+            <span class="nav__sub-title">C++</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/pointers_and-references/">Pointers & References</a></li>
+            
+              <li><a href="/notes/classes/">Classes</a></li>
+            
+              <li><a href="/notes/structs/">Structs</a></li>
+            
+          </ul>
+          
+        </li>
+      
+        <li>
+          
+            <span class="nav__sub-title">Market Microstructure / HFT</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/column-store-architecture/">Crypto L2 Analysis: Part 1 — Column Store Architecture</a></li>
+            
+              <li><a href="/notes/okx-to-colstore/">OKX NDJSON → Colstore Ingest</a></li>
+            
+          </ul>
+          
+        </li>
+      
+        <li>
+          
+            <span class="nav__sub-title">Yield Curves / Rates</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/usd-sofr-bootstrapping/">USD SOFR Bootstrapping — Guide</a></li>
+            
+              <li><a href="/notes/dv01-krd-heatmaps/">DV01 & Key-Rate Heatmaps</a></li>
+            
+          </ul>
+          
+        </li>
+      
+    
+  </ul>
+</nav>
+
+    
+  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Column Store (SoA)">
+    <meta itemprop="description" content="Crypto L2 Analysis: Part 1 - Column Store Architecture  Crypto L2 Analysis: Part 1 - Column Store Architecture          Workflow                  Directory Structure          Strategy                          Obtaining the parameters involved. (Read Stage)              Writing out the parameters per our structure.                                          The actual code used in each file:                  colstore.hpp          ndjson_okx.hpp          okx_to_colstore.cpp                    WorkflowTaking OKX L2 Data for BTC - USDT in an NDJSON format, we convert the file types for faster parsing. Since this is market by price and not market by order, we have some limitations with what we can do with the data.You can access the data hereTake Order Book, spot data of depth 400. Any one day’s data would suffice for exploration.To begin with we have two types of actions:  snapshot{&quot;instId&quot;:&quot;BTC-USDT&quot;,&quot;action&quot;:&quot;snapshot&quot;,&quot;ts&quot;:&quot;1758326400005&quot;,&quot;asks&quot;:[[&quot;115630.1&quot;,&quot;0.0145523&quot;,&quot;1&quot;],[&quot;115631.0&quot;,&quot;0.0539&quot;,&quot;1&quot;]...],&quot;bids:[[px,qty,cnt],...[px,qty,cnt]]}  update{&quot;instId&quot;:&quot;BTC-USDT&quot;,&quot;action&quot;:&quot;update&quot;,&quot;ts&quot;:&quot;1758326400015&quot;,&quot;asks&quot;:[[&quot;115717.8&quot;,&quot;0.18242079&quot;,&quot;6&quot;]],&quot;bids&quot;:[]}For this stage of our implementation we focussing on converting the data into this structure:-    // A minimal, append-only columnar store with separate binary files per column.    // Layout:    //   outdir/    //     schema.json              (human readable schema)    //     columns/    //       frame.u64    //       ts_ms.u64                 (uint64 little-endian, ms since epoch)    //       side.u8                (0 = bid, 1 = ask)    //       etype.u8               (0 = SNAP, 1 = add, 2 = modify,3 = del, 4 = clear_bids, 5 = clear_asks)    //       level.u16              (0..N-1 within that frame)    //       px.f64                 (double price)    //       qty.f64                (double size, amt. actually held)    //       count.u32              (count, number of orders)    //       inst_id.txt            (one line: instrument name)    //     footer.json              ({&quot;rows&quot;: &lt;N&gt;})    // All files are append-only; caller is responsible for writing a consistent number of rows across columns.Directory Structureinclude -||__mercury // (I named my project mercury)| || |__colstore.hpp| |__ndjson_okx.hpp||__src| |__colstore_inspect.cpp| |__okx_to_colstore.cppStrategyObtaining the parameters involved. (Read Stage)        ----------------------       |                      |     ---|       PARSER         |    |  |----------------------|    |    |  |- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]     |--|- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]    |  |- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]    |     |  |- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]    |--|- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]       |- (px,qty,cnt) tuple -&gt; [Obtain Parameters via Parser function]To keep in mind the possibility of a dynamic use-case of the parameters we obtain, we dont hardcode what we do with the obtained parameters in the PARSER function itself. Instead we send a lambda function in the PARSER function.// The parse function structure in the header file -&gt;template &lt;class F&gt;inline void parse_okx_ndjson(const std::string &amp;path, F &amp;&amp;on_record){...}// The parse function we call -&gt;mercury::parse_okx_ndjson(in_path,         [&amp;](uint64_t ts_ms, uint8_t side, uint16_t level, double px, double qty, uint32_t count)        {            // Skip empty quantities (deletes will appear as qty=0 in some datasets)            if (qty &lt;= 0.0)                return;            writer.append(frame, ts_ms, side, level, px, qty, count);            ++emitted;            if ((emitted % 1&#39;000&#39;000) == 0)            {                cerr &lt;&lt; &quot;… &quot; &lt;&lt; emitted &lt;&lt; &quot; rows written\n&quot;;            }         }        );        writer.close();        cout &lt;&lt; &quot;Wrote &quot; &lt;&lt; writer.rows() &lt;&lt; &quot; rows to &quot; &lt;&lt; outdir &lt;&lt; &quot;\n&quot;;Writing out the parameters per our structure.The writer function seen above is to write the parameters we obtain down into our files.  We configure a path where we can create our output columns.  Create a ColWriter class with an apt constructor to open files on initilaizing. This can bring down overhead.  We then use functions to write the parameters we’ve extracted into these files. The lambda funciton earlier takes care of this. We simply provide an apt append funciton to aid this process.struct Files{  std::FILE *frame = nullptr;  std::FILE *ts_ms = nullptr;  std::FILE *side = nullptr;  std::FILE *level = nullptr;  std::FILE *px = nullptr;  std::FILE *qty = nullptr;  std::FILE *count = nullptr;  fs::path dir;  uint64_t rows = 0;}class ColWriter{  public:    // The constructor function will open up all the files.    explicit ColWriter(filestream::path outdir, ) -&gt; outdir_(sd::move(outdir)){      check_directory_present(outdir); // if not the func will take care of creating.      auto cols = outdir_ / &quot;columns&quot;;      check_directory_present(cols);      files_.dir = outdir_;      files_.frame = open_or_throw(cols / &quot;frame.u64&quot;);      files_.ts_ms = open_or_throw(cols / &quot;ts_ms.u64&quot;);      files_.side = open_or_throw(cols / &quot;side.u8&quot;);      // You get the idea.. (open all similarly, leaving for brevity)      }    ~ColWriter{      close();    }    ColWriter(const ColWriter &amp;) = delete;    ColWriter &amp;operator=(const ColWriter &amp;) = delete;    void append(uint64_t frame, uint64_t ts_ms, uint8_t side, uint16_t level, double px, double qty, uint32_t count){      write_scalar(files_.frame, frame);      write_scalar(files_.ts_ms, ts_ms);      // so on..    }    void safe_close(std::FILE*&amp; f){ // A reference to the pointer. We want to set caller&#39;s pointer varaible to nullptr, so we can&#39;t let the pointer be passed by value and need actual pointer.        if(f){          std::fclose(f);          f = nullptr;        }    }    void close(){      if(closed_){        return;      }      safe_close(files_.frame);      safe_close(files_.ts_ms);      //so on..    }  private:    filestream::path outdir_;    Files files_{};}The actual code used in each file:colstore.hpp#ifndef MERCURY_COLSTORE_HPP#define MERCURY_COLSTORE_HPP#include &lt;cstdint&gt;#include &lt;cstdio&gt;#include &lt;cstring&gt;#include &lt;string&gt;#include &lt;string_view&gt;#include &lt;vector&gt;#include &lt;filesystem&gt;namespace fs = std::filesystem;#include &lt;stdexcept&gt;#include &lt;memory&gt;#include &lt;system_error&gt;#include &lt;optional&gt;#include &lt;fstream&gt;namespace mercury{    struct ColFiles    {        std::FILE *frame = nullptr;        std::FILE *ts_ms = nullptr;        std::FILE *side = nullptr;        std::FILE *level = nullptr;        std::FILE *px = nullptr;        std::FILE *qty = nullptr;        std::FILE *count = nullptr;        fs::path dir;        uint64_t rows = 0;    };    inline void ensure_dir(const fs::path &amp;p)    {        std::error_code ec;        if (!fs::exists(p) &amp;&amp; !fs::create_directories(p, ec))        {            throw std::runtime_error(&quot;Failed to create directory: &quot; + p.string() + &quot;, error: &quot; + ec.message());        }    }    inline std::FILE *open_or_throw(const fs::path &amp;p)    {        auto f = std::fopen(p.string().c_str(), &quot;wb&quot;);        if (!f)            throw std::runtime_error(&quot;Failed to open for write: &quot; + p.string());        return f;    }    class ColWriter    {    public:        explicit ColWriter(fs::path outdir, std::string_view inst_id)            : outdir_(std::move(outdir))        {            if (inst_id.empty())                throw std::invalid_argument(&quot;inst_id is empty&quot;);            // dirs            ensure_dir(outdir_);            auto cols = outdir_ / &quot;columns&quot;;            ensure_dir(cols);            // schema            {                std::ofstream s(outdir_ / &quot;schema.json&quot;, std::ios::binary);                s &lt;&lt; &quot;{&quot;                     &quot;\&quot;version\&quot;: 1,&quot;                     &quot;\&quot;columns\&quot;: [&quot;                     &quot;{\&quot;name\&quot;: \&quot;frame\&quot;,   \&quot;type\&quot;: \&quot;u64\&quot;, \&quot;unit\&quot;: \&quot;integer - a count\&quot;},&quot;                     &quot;{\&quot;name\&quot;: \&quot;ts_ms\&quot;,   \&quot;type\&quot;: \&quot;u64\&quot;, \&quot;unit\&quot;: \&quot;ns\&quot;},&quot;                     &quot;{\&quot;name\&quot;: \&quot;side\&quot;, \&quot;type\&quot;: \&quot;u8\&quot;,  \&quot;desc\&quot;: \&quot;0=bid,1=ask\&quot;},&quot;                     &quot;{\&quot;name\&quot;: \&quot;level\&quot;,\&quot;type\&quot;: \&quot;u16\&quot;},&quot;                     &quot;{\&quot;name\&quot;: \&quot;px\&quot;,   \&quot;type\&quot;: \&quot;f64\&quot;},&quot;                     &quot;{\&quot;name\&quot;: \&quot;qty\&quot;,  \&quot;type\&quot;: \&quot;f64\&quot;},&quot;                     &quot;{\&quot;name\&quot;: \&quot;count\&quot;,  \&quot;type\&quot;: \&quot;u32\&quot;, \&quot;desc\&quot;: \&quot;number of orders\&quot;}&quot;                     &quot;]&quot;                     &quot;}&quot;;            }            // inst id            {                std::ofstream idf(cols / &quot;inst_id.txt&quot;, std::ios::binary);                idf &lt;&lt; inst_id;            }            files_.dir = outdir_;            files_.frame = open_or_throw(cols / &quot;frame.u64&quot;);            files_.ts_ms = open_or_throw(cols / &quot;ts_ms.u64&quot;);            files_.side = open_or_throw(cols / &quot;side.u8&quot;);            files_.level = open_or_throw(cols / &quot;level.u16&quot;);            files_.px = open_or_throw(cols / &quot;px.f64&quot;);            files_.qty = open_or_throw(cols / &quot;qty.f64&quot;);            files_.count = open_or_throw(cols / &quot;count.u32&quot;);        }        ~ColWriter()        {            close();        }        ColWriter(const ColWriter &amp;) = delete;        ColWriter &amp;operator=(const ColWriter &amp;) = delete;        void append(uint64_t frame, uint64_t ts_ms, uint8_t side, uint16_t level, double px, double qty, uint32_t count)        {            write_scalar(files_.frame, frame);            write_scalar(files_.ts_ms, ts_ms);            write_scalar(files_.side, side);            write_scalar(files_.level, level);            write_scalar(files_.px, px);            write_scalar(files_.qty, qty);            write_scalar(files_.count, count);            ++files_.rows;        }        void safe_close(std::FILE *&amp;f)        {            if (f)            {                std::fclose(f);                f = nullptr;            }        }        void close()        {            if (closed_)                return;            safe_close(files_.frame);            safe_close(files_.ts_ms);            safe_close(files_.side);            safe_close(files_.level);            safe_close(files_.px);            safe_close(files_.qty);            safe_close(files_.count);            // footer            try            {                std::ofstream f(outdir_ / &quot;footer.json&quot;, std::ios::binary);                f &lt;&lt; &quot;{\&quot;rows\&quot;: &quot; &lt;&lt; files_.rows &lt;&lt; &quot;}&quot;;            }            catch (...)            {            }            closed_ = true;        }        uint64_t rows() const { return files_.rows; }    private:        template &lt;class T&gt;        static void write_scalar(std::FILE *f, const T &amp;v)        {            if (std::fwrite(&amp;v, sizeof(T), 1, f) != 1)            {                throw std::runtime_error(&quot;colstore write failed&quot;);            }        }        fs::path outdir_;        ColFiles files_{};        bool closed_ = false;    };#ifdef _WIN32#include &lt;windows.h&gt;#else#include &lt;sys/mman.h&gt;#include &lt;fcntl.h&gt;#include &lt;unistd.h&gt;#endif    struct MMap    {        uint8_t *ptr = nullptr;        size_t len = 0;        static MMap map(const fs::path &amp;p)        {            MMap m;            // Portable fallback: read whole file into memory (fast enough for inspection)            std::ifstream in(p, std::ios::binary);            if (!in)                throw std::runtime_error(&quot;open failed: &quot; + p.string());            in.seekg(0, std::ios::end);            m.len = static_cast&lt;size_t&gt;(in.tellg());            in.seekg(0);            m.ptr = static_cast&lt;uint8_t *&gt;(std::malloc(m.len));            if (!m.ptr)                throw std::bad_alloc();            in.read(reinterpret_cast&lt;char *&gt;(m.ptr), m.len);            return m;        }        void unmap()        {            if (ptr)            {                std::free(ptr);                ptr = nullptr;                len = 0;            }        }    };} // namespace mercury#endif // MERCURY_COLSTORE_HPPndjson_okx.hpp#ifndef MERCURY_NDJSON_OKX_HPP#define MERCURY_NDJSON_OKX_HPP#include &lt;string&gt;#include &lt;string_view&gt;#include &lt;cstdint&gt;#include &lt;stdexcept&gt;#include &lt;simdjson.h&gt;namespace mercury{    // One JSON line -&gt; many rows (one per tuple in bids/asks).    // on_record signature expected: void(uint64_t ts_ms, uint8_t side, uint16_t level,    ///                                   double px, double qty, uint32_t count)    template &lt;class F1, class F2&gt;    inline void parse_okx_ndjson(const std::string &amp;path, F1 &amp;&amp;on_record, F2 &amp;frame_id, uint64_t &amp;row_limit)    {        using namespace simdjson;        bool continue_parsing = true;        ondemand::parser parser;        auto doc_result = padded_string::load(path);        if (doc_result.error())        {            throw std::runtime_error(&quot;Failed to load file: &quot; + path);        }        padded_string &amp;doc = doc_result.value();        uint64_t emitted = 0;        auto stream_res = parser.iterate_many(doc);        ondemand::document_stream stream = std::move(stream_res).value();        for (simdjson::ondemand::document_reference d : stream)        {            frame_id++; // &lt;- increment per JSON line            if (d.type().value() != simdjson::ondemand::json_type::object)                continue;            auto obj = d.get_object().value();            // ts may be string or number (OKX gives ms)            uint64_t ts_ms = 0;            if (auto ts_it = obj.find_field_unordered(&quot;ts&quot;); ts_it.error() == SUCCESS)            {                auto v = ts_it.value();                if (v.type().value() == ondemand::json_type::string)                {                    std::string s = std::string(v.get_string().value());                    ts_ms = static_cast&lt;uint64_t&gt;(std::strtoull(s.c_str(), nullptr, 10));                }                else                {                    ts_ms = uint64_t(v.get_uint64().value());                }            }            auto maybe_stop = [&amp;](void) -&gt; bool            {                if (row_limit == 0)                    return false;                return emitted &gt;= row_limit;            };            // helper: emit one row per [px, qty, count?] tuple            auto push_side = [&amp;](ondemand::value arr_val, uint8_t side)            {                if (arr_val.type().value() != ondemand::json_type::array)                    return;                ondemand::array arr = arr_val.get_array().value();                uint16_t level = 0;                for (auto lvl_res : arr)                {                    ondemand::value lvl_v = lvl_res.value();                    if (lvl_v.type().value() != ondemand::json_type::array)                    {                        ++level;                        continue;                    }                    ondemand::array triple = lvl_v.get_array().value();                    double px = 0.0;                    double qty = 0.0;                    uint32_t count = 0;                     size_t idx = 0;                    for (auto c_res : triple)                    {                        auto c = c_res.value();                        if (idx == 0)                        {                            if (c.type().value() == ondemand::json_type::string)                            {                                std::string s = std::string(c.get_string().value());                                px = std::strtod(s.c_str(), nullptr);                            }                            else                            {                                px = double(c.get_double().value());                            }                        }                        else if (idx == 1)                        {                            if (c.type().value() == ondemand::json_type::string)                            {                                std::string s = std::string(c.get_string().value());                                qty = std::strtod(s.c_str(), nullptr);                            }                            else                            {                                qty = double(c.get_double().value());                            }                        }                        else if (idx == 2)                        {                            if (c.type().value() == ondemand::json_type::string)                            {                                std::string s = std::string(c.get_string().value());                                count = static_cast&lt;uint32_t&gt;(std::strtoul(s.c_str(), nullptr, 10));                            }                            else                            {                                // Some venues encode counts as integers but ondemand lets us fetch as uint64                                count = static_cast&lt;uint32_t&gt;(c.get_uint64().value());                            }                        }                        ++idx;                    }                    on_record(ts_ms, side, level, px, qty, count);                    if (maybe_stop())                    {                        continue_parsing = false;                        break;                    }                    ++level;                    ++emitted;                }            };            // bids / b            if (auto it = obj.find_field_unordered(&quot;bids&quot;); it.error() == SUCCESS)            {                push_side(it.value(), /*side=*/0);            }            else if (auto it2 = obj.find_field_unordered(&quot;b&quot;); it2.error() == SUCCESS)            {                push_side(it2.value(), /*side=*/0);            }            // asks / a            if (auto it = obj.find_field_unordered(&quot;asks&quot;); it.error() == SUCCESS)            {                push_side(it.value(), /*side=*/1);            }            else if (auto it2 = obj.find_field_unordered(&quot;a&quot;); it2.error() == SUCCESS)            {                push_side(it2.value(), /*side=*/1);            }            if (!continue_parsing)            {                break;            }        }    }} // namespace mercury#endif // MERCURY_NDJSON_OKX_HPPokx_to_colstore.cpp#include &lt;iostream&gt;#include &lt;filesystem&gt;#include &lt;string&gt;#include &lt;string_view&gt;#include &lt;cstdlib&gt;#include &lt;simdjson.h&gt;#include &quot;mercury/colstore.hpp&quot;#include &quot;mercury/ndjson_okx.hpp&quot;using namespace std;int main(int argc, char **argv){    if (argc &lt; 4)    {        cerr &lt;&lt; &quot;Usage: okx_to_colstore &lt;input.data&gt; &lt;out_dir&gt; &lt;instId&gt;\n&quot;;        cerr &lt;&lt; &quot;Example: okx_to_colstore BTC-USDT-L2orderbook-400lv-2025-09-20.data out/BTC-USDT BTC-USDT\n&quot;;        return 1;    }    const string in_path = argv[1];    const filesystem::path outdir = argv[2];    const string inst_id = argv[3];    uint64_t row_limit = 0;    if (argc &gt;= 5)    {        row_limit = std::strtoull(argv[4], nullptr, 10);    }    try    {        mercury::ColWriter writer(outdir, inst_id);        size_t emitted = 0;        uint64_t frame = 0;        mercury::parse_okx_ndjson(in_path, [&amp;](uint64_t ts_ms, uint8_t side, uint16_t level, double px, double qty, uint32_t count)                                  {                                      if (qty &lt;= 0.0)                                          return;                                      writer.append(frame, ts_ms, side, level, px, qty, count);                                      ++emitted;                                      if ((emitted % 1&#39;000&#39;000) == 0)                                      {                                          cerr &lt;&lt; &quot;… &quot; &lt;&lt; emitted &lt;&lt; &quot; rows written\n&quot;;                                      } }, frame, row_limit);        writer.close();        cout &lt;&lt; &quot;Wrote &quot; &lt;&lt; writer.rows() &lt;&lt; &quot; rows to &quot; &lt;&lt; outdir &lt;&lt; &quot;\n&quot;;    }    catch (const std::exception &amp;e)    {        cerr &lt;&lt; &quot;ERROR: &quot; &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;        return 2;    }    return 0;}">
+    <meta itemprop="datePublished" content="2025-10-15T00:00:00+05:30">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">
+            <a href="https://p-dhanush.github.io/notes/2025/10/15/Column-Store-(SoA).html" itemprop="url">Column Store (SoA)
+</a>
+          </h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title"><i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu"><li><a href="#crypto-l2-analysis-part-1---column-store-architecture">Crypto L2 Analysis: Part 1 - Column Store Architecture</a><ul><li><a href="#workflow">Workflow</a><ul><li><a href="#directory-structure">Directory Structure</a></li><li><a href="#strategy">Strategy</a><ul><li><a href="#obtaining-the-parameters-involved-read-stage">Obtaining the parameters involved. (Read Stage)</a></li><li><a href="#writing-out-the-parameters-per-our-structure">Writing out the parameters per our structure.</a></li></ul></li></ul></li><li><a href="#the-actual-code-used-in-each-file">The actual code used in each file:</a><ul><li><a href="#colstorehpp">colstore.hpp</a></li><li><a href="#ndjson_okxhpp">ndjson_okx.hpp</a></li><li><a href="#okx_to_colstorecpp">okx_to_colstore.cpp</a></li></ul></li></ul></li></ul>
+            </nav>
+          </aside>
+        
+        <hr />
+
+<h1 id="crypto-l2-analysis-part-1---column-store-architecture">Crypto L2 Analysis: Part 1 - Column Store Architecture</h1>
+
+<ul id="markdown-toc">
+  <li><a href="#crypto-l2-analysis-part-1---column-store-architecture" id="markdown-toc-crypto-l2-analysis-part-1---column-store-architecture">Crypto L2 Analysis: Part 1 - Column Store Architecture</a>    <ul>
+      <li><a href="#workflow" id="markdown-toc-workflow">Workflow</a>        <ul>
+          <li><a href="#directory-structure" id="markdown-toc-directory-structure">Directory Structure</a></li>
+          <li><a href="#strategy" id="markdown-toc-strategy">Strategy</a>            <ul>
+              <li><a href="#obtaining-the-parameters-involved-read-stage" id="markdown-toc-obtaining-the-parameters-involved-read-stage">Obtaining the parameters involved. (Read Stage)</a></li>
+              <li><a href="#writing-out-the-parameters-per-our-structure" id="markdown-toc-writing-out-the-parameters-per-our-structure">Writing out the parameters per our structure.</a></li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li><a href="#the-actual-code-used-in-each-file" id="markdown-toc-the-actual-code-used-in-each-file">The actual code used in each file:</a>        <ul>
+          <li><a href="#colstorehpp" id="markdown-toc-colstorehpp">colstore.hpp</a></li>
+          <li><a href="#ndjson_okxhpp" id="markdown-toc-ndjson_okxhpp">ndjson_okx.hpp</a></li>
+          <li><a href="#okx_to_colstorecpp" id="markdown-toc-okx_to_colstorecpp">okx_to_colstore.cpp</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<hr />
+
+<h2 id="workflow">Workflow</h2>
+
+<p>Taking OKX L2 Data for BTC - USDT in an NDJSON format, we convert the file types for faster parsing. Since this is market by price and not market by order, we have some limitations with what we can do with the data.</p>
+
+<p><strong>You can access the data <a href="https://www.okx.com/en-us/historical-data">here</a></strong>
+Take Order Book, spot data of depth 400. Any one day’s data would suffice for exploration.</p>
+
+<p>To begin with we have two types of actions:</p>
+<ul>
+  <li>snapshot
+<code class="language-plaintext highlighter-rouge">{"instId":"BTC-USDT","action":"snapshot","ts":"1758326400005","asks":[["115630.1","0.0145523","1"],["115631.0","0.0539","1"]...],"bids:[[px,qty,cnt],...[px,qty,cnt]]}</code></li>
+  <li>update
+<code class="language-plaintext highlighter-rouge">{"instId":"BTC-USDT","action":"update","ts":"1758326400015","asks":[["115717.8","0.18242079","6"]],"bids":[]}</code></li>
+</ul>
+
+<p>For this stage of our implementation we focussing on converting the data into this structure:-</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+    <span class="c1">// A minimal, append-only columnar store with separate binary files per column.</span>
+    <span class="c1">// Layout:</span>
+    <span class="c1">//   outdir/</span>
+    <span class="c1">//     schema.json              (human readable schema)</span>
+    <span class="c1">//     columns/</span>
+    <span class="c1">//       frame.u64</span>
+    <span class="c1">//       ts_ms.u64                 (uint64 little-endian, ms since epoch)</span>
+    <span class="c1">//       side.u8                (0 = bid, 1 = ask)</span>
+    <span class="c1">//       etype.u8               (0 = SNAP, 1 = add, 2 = modify,3 = del, 4 = clear_bids, 5 = clear_asks)</span>
+    <span class="c1">//       level.u16              (0..N-1 within that frame)</span>
+    <span class="c1">//       px.f64                 (double price)</span>
+    <span class="c1">//       qty.f64                (double size, amt. actually held)</span>
+    <span class="c1">//       count.u32              (count, number of orders)</span>
+    <span class="c1">//       inst_id.txt            (one line: instrument name)</span>
+    <span class="c1">//     footer.json              ({"rows": &lt;N&gt;})</span>
+    <span class="c1">// All files are append-only; caller is responsible for writing a consistent number of rows across columns.</span>
+</code></pre></div></div>
+
+<h3 id="directory-structure">Directory Structure</h3>
+<div class="language-css highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">include</span> <span class="nt">-</span>
+<span class="o">|</span>
+<span class="o">|</span><span class="nt">__mercury</span> <span class="o">//</span> <span class="o">(</span><span class="nt">I</span> <span class="nt">named</span> <span class="nt">my</span> <span class="nt">project</span> <span class="nt">mercury</span><span class="o">)</span>
+<span class="o">|</span> <span class="o">|</span>
+<span class="o">|</span> <span class="o">|</span><span class="nt">__colstore</span><span class="nc">.hpp</span>
+<span class="o">|</span> <span class="o">|</span><span class="nt">__ndjson_okx</span><span class="nc">.hpp</span>
+<span class="o">|</span>
+<span class="o">|</span><span class="nt">__src</span>
+<span class="o">|</span> <span class="o">|</span><span class="nt">__colstore_inspect</span><span class="nc">.cpp</span>
+<span class="o">|</span> <span class="o">|</span><span class="nt">__okx_to_colstore</span><span class="nc">.cpp</span>
+</code></pre></div></div>
+
+<h3 id="strategy">Strategy</h3>
+
+<h4 id="obtaining-the-parameters-involved-read-stage">Obtaining the parameters involved. (Read Stage)</h4>
+<div class="language-css highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        <span class="nt">----------------------</span>
+       <span class="o">|</span>                      <span class="o">|</span> 
+    <span class="nt">---</span><span class="o">|</span>       <span class="nt">PARSER</span>         <span class="o">|</span>
+    <span class="o">|</span>  <span class="o">|</span><span class="nt">----------------------</span><span class="o">|</span>
+    <span class="o">|</span>
+    <span class="o">|</span>  <span class="o">|</span><span class="nt">-</span> <span class="o">(</span><span class="nt">px</span><span class="o">,</span><span class="nt">qty</span><span class="o">,</span><span class="nt">cnt</span><span class="o">)</span> <span class="nt">tuple</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">[</span><span class="nt">Obtain</span> <span class="nt">Parameters</span> <span class="nt">via</span> <span class="nt">Parser</span> <span class="nt">function</span><span class="o">]</span> 
+    <span class="o">|</span><span class="nt">--</span><span class="o">|</span><span class="nt">-</span> <span class="o">(</span><span class="nt">px</span><span class="o">,</span><span class="nt">qty</span><span class="o">,</span><span class="nt">cnt</span><span class="o">)</span> <span class="nt">tuple</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">[</span><span class="nt">Obtain</span> <span class="nt">Parameters</span> <span class="nt">via</span> <span class="nt">Parser</span> <span class="nt">function</span><span class="o">]</span>
+    <span class="o">|</span>  <span class="o">|</span><span class="nt">-</span> <span class="o">(</span><span class="nt">px</span><span class="o">,</span><span class="nt">qty</span><span class="o">,</span><span class="nt">cnt</span><span class="o">)</span> <span class="nt">tuple</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">[</span><span class="nt">Obtain</span> <span class="nt">Parameters</span> <span class="nt">via</span> <span class="nt">Parser</span> <span class="nt">function</span><span class="o">]</span>
+    <span class="o">|</span> 
+    <span class="o">|</span>  <span class="o">|</span><span class="nt">-</span> <span class="o">(</span><span class="nt">px</span><span class="o">,</span><span class="nt">qty</span><span class="o">,</span><span class="nt">cnt</span><span class="o">)</span> <span class="nt">tuple</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">[</span><span class="nt">Obtain</span> <span class="nt">Parameters</span> <span class="nt">via</span> <span class="nt">Parser</span> <span class="nt">function</span><span class="o">]</span>
+    <span class="o">|</span><span class="nt">--</span><span class="o">|</span><span class="nt">-</span> <span class="o">(</span><span class="nt">px</span><span class="o">,</span><span class="nt">qty</span><span class="o">,</span><span class="nt">cnt</span><span class="o">)</span> <span class="nt">tuple</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">[</span><span class="nt">Obtain</span> <span class="nt">Parameters</span> <span class="nt">via</span> <span class="nt">Parser</span> <span class="nt">function</span><span class="o">]</span>
+       <span class="o">|</span><span class="nt">-</span> <span class="o">(</span><span class="nt">px</span><span class="o">,</span><span class="nt">qty</span><span class="o">,</span><span class="nt">cnt</span><span class="o">)</span> <span class="nt">tuple</span> <span class="nt">-</span><span class="o">&gt;</span> <span class="o">[</span><span class="nt">Obtain</span> <span class="nt">Parameters</span> <span class="nt">via</span> <span class="nt">Parser</span> <span class="nt">function</span><span class="o">]</span>
+</code></pre></div></div>
+
+<p><strong>To keep in mind the possibility of a dynamic use-case of the parameters we obtain, we dont hardcode what we do with the obtained parameters in the PARSER function itself. Instead we send a <code class="language-plaintext highlighter-rouge">lambda</code> function in the PARSER function.</strong></p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// The parse function structure in the header file -&gt;</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">F</span><span class="p">&gt;</span>
+<span class="kr">inline</span> <span class="kt">void</span> <span class="nf">parse_okx_ndjson</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">path</span><span class="p">,</span> <span class="n">F</span> <span class="o">&amp;&amp;</span><span class="n">on_record</span><span class="p">)</span>
+<span class="p">{...}</span>
+
+<span class="c1">// The parse function we call -&gt;</span>
+<span class="n">mercury</span><span class="o">::</span><span class="n">parse_okx_ndjson</span><span class="p">(</span><span class="n">in_path</span><span class="p">,</span> 
+        <span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">uint64_t</span> <span class="n">ts_ms</span><span class="p">,</span> <span class="kt">uint8_t</span> <span class="n">side</span><span class="p">,</span> <span class="kt">uint16_t</span> <span class="n">level</span><span class="p">,</span> <span class="kt">double</span> <span class="n">px</span><span class="p">,</span> <span class="kt">double</span> <span class="n">qty</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">count</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="c1">// Skip empty quantities (deletes will appear as qty=0 in some datasets)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">qty</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">)</span>
+                <span class="k">return</span><span class="p">;</span>
+            <span class="n">writer</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">ts_ms</span><span class="p">,</span> <span class="n">side</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">px</span><span class="p">,</span> <span class="n">qty</span><span class="p">,</span> <span class="n">count</span><span class="p">);</span>
+            <span class="o">++</span><span class="n">emitted</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">emitted</span> <span class="o">%</span> <span class="mi">1'000'000</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"… "</span> <span class="o">&lt;&lt;</span> <span class="n">emitted</span> <span class="o">&lt;&lt;</span> <span class="s">" rows written</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+            <span class="p">}</span> 
+        <span class="p">}</span>
+        <span class="p">);</span>
+
+        <span class="n">writer</span><span class="p">.</span><span class="n">close</span><span class="p">();</span>
+        <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Wrote "</span> <span class="o">&lt;&lt;</span> <span class="n">writer</span><span class="p">.</span><span class="n">rows</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">" rows to "</span> <span class="o">&lt;&lt;</span> <span class="n">outdir</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+</code></pre></div></div>
+
+<h4 id="writing-out-the-parameters-per-our-structure">Writing out the parameters per our structure.</h4>
+
+<p>The <code class="language-plaintext highlighter-rouge">writer</code> function seen above is to write the parameters we obtain down into our files.</p>
+
+<ul>
+  <li>We configure a path where we can create our output columns.</li>
+  <li>Create a ColWriter class with an apt constructor to open files on initilaizing. This can bring down overhead.</li>
+  <li>We then use functions to write the parameters we’ve extracted into these files. The <code class="language-plaintext highlighter-rouge">lambda</code> funciton earlier takes care of this. We simply provide an apt <code class="language-plaintext highlighter-rouge">append</code> funciton to aid this process.</li>
+</ul>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="nc">Files</span><span class="p">{</span>
+  <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">frame</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">ts_ms</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">side</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">level</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">px</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">qty</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">count</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+  <span class="n">fs</span><span class="o">::</span><span class="n">path</span> <span class="n">dir</span><span class="p">;</span>
+  <span class="kt">uint64_t</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="k">class</span> <span class="nc">ColWriter</span><span class="p">{</span>
+  <span class="nl">public:</span>
+    <span class="c1">// The constructor function will open up all the files.</span>
+    <span class="k">explicit</span> <span class="n">ColWriter</span><span class="p">(</span><span class="n">filestream</span><span class="o">::</span><span class="n">path</span> <span class="n">outdir</span><span class="p">,</span> <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">outdir_</span><span class="p">(</span><span class="n">sd</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">outdir</span><span class="p">)){</span>
+      <span class="n">check_directory_present</span><span class="p">(</span><span class="n">outdir</span><span class="p">);</span> <span class="c1">// if not the func will take care of creating.</span>
+      <span class="k">auto</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">outdir_</span> <span class="o">/</span> <span class="s">"columns"</span><span class="p">;</span>
+      <span class="n">check_directory_present</span><span class="p">(</span><span class="n">cols</span><span class="p">);</span>
+
+      <span class="n">files_</span><span class="p">.</span><span class="n">dir</span> <span class="o">=</span> <span class="n">outdir_</span><span class="p">;</span>
+      <span class="n">files_</span><span class="p">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">open_or_throw</span><span class="p">(</span><span class="n">cols</span> <span class="o">/</span> <span class="s">"frame.u64"</span><span class="p">);</span>
+      <span class="n">files_</span><span class="p">.</span><span class="n">ts_ms</span> <span class="o">=</span> <span class="n">open_or_throw</span><span class="p">(</span><span class="n">cols</span> <span class="o">/</span> <span class="s">"ts_ms.u64"</span><span class="p">);</span>
+      <span class="n">files_</span><span class="p">.</span><span class="n">side</span> <span class="o">=</span> <span class="n">open_or_throw</span><span class="p">(</span><span class="n">cols</span> <span class="o">/</span> <span class="s">"side.u8"</span><span class="p">);</span>
+      <span class="c1">// You get the idea.. (open all similarly, leaving for brevity)  </span>
+    <span class="p">}</span>
+
+    <span class="o">~</span><span class="n">ColWriter</span><span class="p">{</span>
+      <span class="n">close</span><span class="p">();</span>
+    <span class="p">}</span>
+
+    <span class="n">ColWriter</span><span class="p">(</span><span class="k">const</span> <span class="n">ColWriter</span> <span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+    <span class="n">ColWriter</span> <span class="o">&amp;</span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="k">const</span> <span class="n">ColWriter</span> <span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+
+    <span class="kt">void</span> <span class="n">append</span><span class="p">(</span><span class="kt">uint64_t</span> <span class="n">frame</span><span class="p">,</span> <span class="kt">uint64_t</span> <span class="n">ts_ms</span><span class="p">,</span> <span class="kt">uint8_t</span> <span class="n">side</span><span class="p">,</span> <span class="kt">uint16_t</span> <span class="n">level</span><span class="p">,</span> <span class="kt">double</span> <span class="n">px</span><span class="p">,</span> <span class="kt">double</span> <span class="n">qty</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">count</span><span class="p">){</span>
+      <span class="n">write_scalar</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">frame</span><span class="p">,</span> <span class="n">frame</span><span class="p">);</span>
+      <span class="n">write_scalar</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">ts_ms</span><span class="p">,</span> <span class="n">ts_ms</span><span class="p">);</span>
+      <span class="c1">// so on..</span>
+    <span class="p">}</span>
+
+    <span class="kt">void</span> <span class="n">safe_close</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">FILE</span><span class="o">*&amp;</span> <span class="n">f</span><span class="p">){</span> <span class="c1">// A reference to the pointer. We want to set caller's pointer varaible to nullptr, so we can't let the pointer be passed by value and need actual pointer.</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">f</span><span class="p">){</span>
+          <span class="n">std</span><span class="o">::</span><span class="n">fclose</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
+          <span class="n">f</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="kt">void</span> <span class="n">close</span><span class="p">(){</span>
+      <span class="k">if</span><span class="p">(</span><span class="n">closed_</span><span class="p">){</span>
+        <span class="k">return</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="n">safe_close</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">frame</span><span class="p">);</span>
+      <span class="n">safe_close</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">ts_ms</span><span class="p">);</span>
+      <span class="c1">//so on..</span>
+    <span class="p">}</span>
+
+
+
+  <span class="nl">private:</span>
+    <span class="n">filestream</span><span class="o">::</span><span class="n">path</span> <span class="n">outdir_</span><span class="p">;</span>
+    <span class="n">Files</span> <span class="n">files_</span><span class="p">{};</span>
+
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="the-actual-code-used-in-each-file">The actual code used in each file:</h2>
+
+<h3 id="colstorehpp">colstore.hpp</h3>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#ifndef MERCURY_COLSTORE_HPP
+#define MERCURY_COLSTORE_HPP
+</span>
+<span class="cp">#include</span> <span class="cpf">&lt;cstdint&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;cstdio&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;cstring&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;string_view&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;filesystem&gt;</span><span class="cp">
+</span><span class="k">namespace</span> <span class="n">fs</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">filesystem</span><span class="p">;</span>
+
+<span class="cp">#include</span> <span class="cpf">&lt;stdexcept&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;memory&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;system_error&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;optional&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;fstream&gt;</span><span class="cp">
+</span>
+<span class="k">namespace</span> <span class="n">mercury</span>
+<span class="p">{</span>
+    <span class="k">struct</span> <span class="nc">ColFiles</span>
+    <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">frame</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">ts_ms</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">side</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">level</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">px</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">qty</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+        <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">count</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+        <span class="n">fs</span><span class="o">::</span><span class="n">path</span> <span class="n">dir</span><span class="p">;</span>
+        <span class="kt">uint64_t</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">};</span>
+
+    <span class="kr">inline</span> <span class="kt">void</span> <span class="n">ensure_dir</span><span class="p">(</span><span class="k">const</span> <span class="n">fs</span><span class="o">::</span><span class="n">path</span> <span class="o">&amp;</span><span class="n">p</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">error_code</span> <span class="n">ec</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">fs</span><span class="o">::</span><span class="n">exists</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">fs</span><span class="o">::</span><span class="n">create_directories</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">ec</span><span class="p">))</span>
+        <span class="p">{</span>
+            <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"Failed to create directory: "</span> <span class="o">+</span> <span class="n">p</span><span class="p">.</span><span class="n">string</span><span class="p">()</span> <span class="o">+</span> <span class="s">", error: "</span> <span class="o">+</span> <span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="kr">inline</span> <span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">open_or_throw</span><span class="p">(</span><span class="k">const</span> <span class="n">fs</span><span class="o">::</span><span class="n">path</span> <span class="o">&amp;</span><span class="n">p</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">auto</span> <span class="n">f</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">fopen</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">string</span><span class="p">().</span><span class="n">c_str</span><span class="p">(),</span> <span class="s">"wb"</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"Failed to open for write: "</span> <span class="o">+</span> <span class="n">p</span><span class="p">.</span><span class="n">string</span><span class="p">());</span>
+        <span class="k">return</span> <span class="n">f</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">class</span> <span class="nc">ColWriter</span>
+    <span class="p">{</span>
+    <span class="nl">public:</span>
+        <span class="k">explicit</span> <span class="n">ColWriter</span><span class="p">(</span><span class="n">fs</span><span class="o">::</span><span class="n">path</span> <span class="n">outdir</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string_view</span> <span class="n">inst_id</span><span class="p">)</span>
+            <span class="o">:</span> <span class="n">outdir_</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">outdir</span><span class="p">))</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">inst_id</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span>
+                <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">invalid_argument</span><span class="p">(</span><span class="s">"inst_id is empty"</span><span class="p">);</span>
+            <span class="c1">// dirs</span>
+            <span class="n">ensure_dir</span><span class="p">(</span><span class="n">outdir_</span><span class="p">);</span>
+            <span class="k">auto</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">outdir_</span> <span class="o">/</span> <span class="s">"columns"</span><span class="p">;</span>
+            <span class="n">ensure_dir</span><span class="p">(</span><span class="n">cols</span><span class="p">);</span>
+
+            <span class="c1">// schema</span>
+            <span class="p">{</span>
+                <span class="n">std</span><span class="o">::</span><span class="n">ofstream</span> <span class="n">s</span><span class="p">(</span><span class="n">outdir_</span> <span class="o">/</span> <span class="s">"schema.json"</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">ios</span><span class="o">::</span><span class="n">binary</span><span class="p">);</span>
+                <span class="n">s</span> <span class="o">&lt;&lt;</span> <span class="s">"{"</span>
+                     <span class="s">"</span><span class="se">\"</span><span class="s">version</span><span class="se">\"</span><span class="s">: 1,"</span>
+                     <span class="s">"</span><span class="se">\"</span><span class="s">columns</span><span class="se">\"</span><span class="s">: ["</span>
+                     <span class="s">"{</span><span class="se">\"</span><span class="s">name</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">frame</span><span class="se">\"</span><span class="s">,   </span><span class="se">\"</span><span class="s">type</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">u64</span><span class="se">\"</span><span class="s">, </span><span class="se">\"</span><span class="s">unit</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">integer - a count</span><span class="se">\"</span><span class="s">},"</span>
+                     <span class="s">"{</span><span class="se">\"</span><span class="s">name</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">ts_ms</span><span class="se">\"</span><span class="s">,   </span><span class="se">\"</span><span class="s">type</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">u64</span><span class="se">\"</span><span class="s">, </span><span class="se">\"</span><span class="s">unit</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">ns</span><span class="se">\"</span><span class="s">},"</span>
+                     <span class="s">"{</span><span class="se">\"</span><span class="s">name</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">side</span><span class="se">\"</span><span class="s">, </span><span class="se">\"</span><span class="s">type</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">u8</span><span class="se">\"</span><span class="s">,  </span><span class="se">\"</span><span class="s">desc</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">0=bid,1=ask</span><span class="se">\"</span><span class="s">},"</span>
+                     <span class="s">"{</span><span class="se">\"</span><span class="s">name</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">level</span><span class="se">\"</span><span class="s">,</span><span class="se">\"</span><span class="s">type</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">u16</span><span class="se">\"</span><span class="s">},"</span>
+                     <span class="s">"{</span><span class="se">\"</span><span class="s">name</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">px</span><span class="se">\"</span><span class="s">,   </span><span class="se">\"</span><span class="s">type</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">f64</span><span class="se">\"</span><span class="s">},"</span>
+                     <span class="s">"{</span><span class="se">\"</span><span class="s">name</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">qty</span><span class="se">\"</span><span class="s">,  </span><span class="se">\"</span><span class="s">type</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">f64</span><span class="se">\"</span><span class="s">},"</span>
+                     <span class="s">"{</span><span class="se">\"</span><span class="s">name</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">count</span><span class="se">\"</span><span class="s">,  </span><span class="se">\"</span><span class="s">type</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">u32</span><span class="se">\"</span><span class="s">, </span><span class="se">\"</span><span class="s">desc</span><span class="se">\"</span><span class="s">: </span><span class="se">\"</span><span class="s">number of orders</span><span class="se">\"</span><span class="s">}"</span>
+                     <span class="s">"]"</span>
+                     <span class="s">"}"</span><span class="p">;</span>
+            <span class="p">}</span>
+
+            <span class="c1">// inst id</span>
+            <span class="p">{</span>
+                <span class="n">std</span><span class="o">::</span><span class="n">ofstream</span> <span class="n">idf</span><span class="p">(</span><span class="n">cols</span> <span class="o">/</span> <span class="s">"inst_id.txt"</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">ios</span><span class="o">::</span><span class="n">binary</span><span class="p">);</span>
+                <span class="n">idf</span> <span class="o">&lt;&lt;</span> <span class="n">inst_id</span><span class="p">;</span>
+            <span class="p">}</span>
+
+            <span class="n">files_</span><span class="p">.</span><span class="n">dir</span> <span class="o">=</span> <span class="n">outdir_</span><span class="p">;</span>
+            <span class="n">files_</span><span class="p">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">open_or_throw</span><span class="p">(</span><span class="n">cols</span> <span class="o">/</span> <span class="s">"frame.u64"</span><span class="p">);</span>
+            <span class="n">files_</span><span class="p">.</span><span class="n">ts_ms</span> <span class="o">=</span> <span class="n">open_or_throw</span><span class="p">(</span><span class="n">cols</span> <span class="o">/</span> <span class="s">"ts_ms.u64"</span><span class="p">);</span>
+            <span class="n">files_</span><span class="p">.</span><span class="n">side</span> <span class="o">=</span> <span class="n">open_or_throw</span><span class="p">(</span><span class="n">cols</span> <span class="o">/</span> <span class="s">"side.u8"</span><span class="p">);</span>
+            <span class="n">files_</span><span class="p">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">open_or_throw</span><span class="p">(</span><span class="n">cols</span> <span class="o">/</span> <span class="s">"level.u16"</span><span class="p">);</span>
+            <span class="n">files_</span><span class="p">.</span><span class="n">px</span> <span class="o">=</span> <span class="n">open_or_throw</span><span class="p">(</span><span class="n">cols</span> <span class="o">/</span> <span class="s">"px.f64"</span><span class="p">);</span>
+            <span class="n">files_</span><span class="p">.</span><span class="n">qty</span> <span class="o">=</span> <span class="n">open_or_throw</span><span class="p">(</span><span class="n">cols</span> <span class="o">/</span> <span class="s">"qty.f64"</span><span class="p">);</span>
+            <span class="n">files_</span><span class="p">.</span><span class="n">count</span> <span class="o">=</span> <span class="n">open_or_throw</span><span class="p">(</span><span class="n">cols</span> <span class="o">/</span> <span class="s">"count.u32"</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="o">~</span><span class="n">ColWriter</span><span class="p">()</span>
+        <span class="p">{</span>
+            <span class="n">close</span><span class="p">();</span>
+        <span class="p">}</span>
+
+        <span class="n">ColWriter</span><span class="p">(</span><span class="k">const</span> <span class="n">ColWriter</span> <span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+        <span class="n">ColWriter</span> <span class="o">&amp;</span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="k">const</span> <span class="n">ColWriter</span> <span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+
+        <span class="kt">void</span> <span class="n">append</span><span class="p">(</span><span class="kt">uint64_t</span> <span class="n">frame</span><span class="p">,</span> <span class="kt">uint64_t</span> <span class="n">ts_ms</span><span class="p">,</span> <span class="kt">uint8_t</span> <span class="n">side</span><span class="p">,</span> <span class="kt">uint16_t</span> <span class="n">level</span><span class="p">,</span> <span class="kt">double</span> <span class="n">px</span><span class="p">,</span> <span class="kt">double</span> <span class="n">qty</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">count</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">write_scalar</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">frame</span><span class="p">,</span> <span class="n">frame</span><span class="p">);</span>
+            <span class="n">write_scalar</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">ts_ms</span><span class="p">,</span> <span class="n">ts_ms</span><span class="p">);</span>
+            <span class="n">write_scalar</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">side</span><span class="p">,</span> <span class="n">side</span><span class="p">);</span>
+            <span class="n">write_scalar</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">level</span><span class="p">,</span> <span class="n">level</span><span class="p">);</span>
+            <span class="n">write_scalar</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">px</span><span class="p">,</span> <span class="n">px</span><span class="p">);</span>
+            <span class="n">write_scalar</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">qty</span><span class="p">,</span> <span class="n">qty</span><span class="p">);</span>
+            <span class="n">write_scalar</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">count</span><span class="p">,</span> <span class="n">count</span><span class="p">);</span>
+            <span class="o">++</span><span class="n">files_</span><span class="p">.</span><span class="n">rows</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="kt">void</span> <span class="n">safe_close</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*&amp;</span><span class="n">f</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="n">std</span><span class="o">::</span><span class="n">fclose</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
+                <span class="n">f</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="kt">void</span> <span class="n">close</span><span class="p">()</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">closed_</span><span class="p">)</span>
+                <span class="k">return</span><span class="p">;</span>
+            <span class="n">safe_close</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">frame</span><span class="p">);</span>
+            <span class="n">safe_close</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">ts_ms</span><span class="p">);</span>
+            <span class="n">safe_close</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">side</span><span class="p">);</span>
+            <span class="n">safe_close</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">level</span><span class="p">);</span>
+            <span class="n">safe_close</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">px</span><span class="p">);</span>
+            <span class="n">safe_close</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">qty</span><span class="p">);</span>
+            <span class="n">safe_close</span><span class="p">(</span><span class="n">files_</span><span class="p">.</span><span class="n">count</span><span class="p">);</span>
+
+            <span class="c1">// footer</span>
+            <span class="k">try</span>
+            <span class="p">{</span>
+                <span class="n">std</span><span class="o">::</span><span class="n">ofstream</span> <span class="n">f</span><span class="p">(</span><span class="n">outdir_</span> <span class="o">/</span> <span class="s">"footer.json"</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">ios</span><span class="o">::</span><span class="n">binary</span><span class="p">);</span>
+                <span class="n">f</span> <span class="o">&lt;&lt;</span> <span class="s">"{</span><span class="se">\"</span><span class="s">rows</span><span class="se">\"</span><span class="s">: "</span> <span class="o">&lt;&lt;</span> <span class="n">files_</span><span class="p">.</span><span class="n">rows</span> <span class="o">&lt;&lt;</span> <span class="s">"}"</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="k">catch</span> <span class="p">(...)</span>
+            <span class="p">{</span>
+            <span class="p">}</span>
+
+            <span class="n">closed_</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="kt">uint64_t</span> <span class="n">rows</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">files_</span><span class="p">.</span><span class="n">rows</span><span class="p">;</span> <span class="p">}</span>
+
+    <span class="nl">private:</span>
+        <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">&gt;</span>
+        <span class="k">static</span> <span class="kt">void</span> <span class="n">write_scalar</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">FILE</span> <span class="o">*</span><span class="n">f</span><span class="p">,</span> <span class="k">const</span> <span class="n">T</span> <span class="o">&amp;</span><span class="n">v</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">fwrite</span><span class="p">(</span><span class="o">&amp;</span><span class="n">v</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">T</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"colstore write failed"</span><span class="p">);</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="n">fs</span><span class="o">::</span><span class="n">path</span> <span class="n">outdir_</span><span class="p">;</span>
+        <span class="n">ColFiles</span> <span class="n">files_</span><span class="p">{};</span>
+        <span class="kt">bool</span> <span class="n">closed_</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="p">};</span>
+
+<span class="cp">#ifdef _WIN32
+#include</span> <span class="cpf">&lt;windows.h&gt;</span><span class="cp">
+#else
+#include</span> <span class="cpf">&lt;sys/mman.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;fcntl.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
+#endif
+</span>
+    <span class="k">struct</span> <span class="nc">MMap</span>
+    <span class="p">{</span>
+        <span class="kt">uint8_t</span> <span class="o">*</span><span class="n">ptr</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+        <span class="kt">size_t</span> <span class="n">len</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="k">static</span> <span class="n">MMap</span> <span class="n">map</span><span class="p">(</span><span class="k">const</span> <span class="n">fs</span><span class="o">::</span><span class="n">path</span> <span class="o">&amp;</span><span class="n">p</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">MMap</span> <span class="n">m</span><span class="p">;</span>
+            <span class="c1">// Portable fallback: read whole file into memory (fast enough for inspection)</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">ifstream</span> <span class="n">in</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">ios</span><span class="o">::</span><span class="n">binary</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">in</span><span class="p">)</span>
+                <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"open failed: "</span> <span class="o">+</span> <span class="n">p</span><span class="p">.</span><span class="n">string</span><span class="p">());</span>
+            <span class="n">in</span><span class="p">.</span><span class="n">seekg</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">ios</span><span class="o">::</span><span class="n">end</span><span class="p">);</span>
+            <span class="n">m</span><span class="p">.</span><span class="n">len</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">in</span><span class="p">.</span><span class="n">tellg</span><span class="p">());</span>
+            <span class="n">in</span><span class="p">.</span><span class="n">seekg</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+            <span class="n">m</span><span class="p">.</span><span class="n">ptr</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span> <span class="o">*&gt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">malloc</span><span class="p">(</span><span class="n">m</span><span class="p">.</span><span class="n">len</span><span class="p">));</span>
+            <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">m</span><span class="p">.</span><span class="n">ptr</span><span class="p">)</span>
+                <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">bad_alloc</span><span class="p">();</span>
+            <span class="n">in</span><span class="p">.</span><span class="n">read</span><span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">char</span> <span class="o">*&gt;</span><span class="p">(</span><span class="n">m</span><span class="p">.</span><span class="n">ptr</span><span class="p">),</span> <span class="n">m</span><span class="p">.</span><span class="n">len</span><span class="p">);</span>
+            <span class="k">return</span> <span class="n">m</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="kt">void</span> <span class="n">unmap</span><span class="p">()</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">ptr</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="n">std</span><span class="o">::</span><span class="n">free</span><span class="p">(</span><span class="n">ptr</span><span class="p">);</span>
+                <span class="n">ptr</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+                <span class="n">len</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">};</span>
+
+<span class="p">}</span> <span class="c1">// namespace mercury</span>
+
+<span class="cp">#endif // MERCURY_COLSTORE_HPP
+</span></code></pre></div></div>
+
+<h3 id="ndjson_okxhpp">ndjson_okx.hpp</h3>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#ifndef MERCURY_NDJSON_OKX_HPP
+#define MERCURY_NDJSON_OKX_HPP
+</span>
+<span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;string_view&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;cstdint&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;stdexcept&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;simdjson.h&gt;</span><span class="cp">
+</span>
+<span class="k">namespace</span> <span class="n">mercury</span>
+<span class="p">{</span>
+
+    <span class="c1">// One JSON line -&gt; many rows (one per tuple in bids/asks).</span>
+    <span class="c1">// on_record signature expected: void(uint64_t ts_ms, uint8_t side, uint16_t level,</span>
+    <span class="c1">///                                   double px, double qty, uint32_t count)</span>
+
+    <span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">F1</span><span class="p">,</span> <span class="k">class</span> <span class="nc">F2</span><span class="p">&gt;</span>
+    <span class="kr">inline</span> <span class="kt">void</span> <span class="n">parse_okx_ndjson</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">path</span><span class="p">,</span> <span class="n">F1</span> <span class="o">&amp;&amp;</span><span class="n">on_record</span><span class="p">,</span> <span class="n">F2</span> <span class="o">&amp;</span><span class="n">frame_id</span><span class="p">,</span> <span class="kt">uint64_t</span> <span class="o">&amp;</span><span class="n">row_limit</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">using</span> <span class="k">namespace</span> <span class="n">simdjson</span><span class="p">;</span>
+        <span class="kt">bool</span> <span class="n">continue_parsing</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="n">ondemand</span><span class="o">::</span><span class="n">parser</span> <span class="n">parser</span><span class="p">;</span>
+        <span class="k">auto</span> <span class="n">doc_result</span> <span class="o">=</span> <span class="n">padded_string</span><span class="o">::</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">doc_result</span><span class="p">.</span><span class="n">error</span><span class="p">())</span>
+        <span class="p">{</span>
+            <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"Failed to load file: "</span> <span class="o">+</span> <span class="n">path</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="n">padded_string</span> <span class="o">&amp;</span><span class="n">doc</span> <span class="o">=</span> <span class="n">doc_result</span><span class="p">.</span><span class="n">value</span><span class="p">();</span>
+
+        <span class="kt">uint64_t</span> <span class="n">emitted</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+        <span class="k">auto</span> <span class="n">stream_res</span> <span class="o">=</span> <span class="n">parser</span><span class="p">.</span><span class="n">iterate_many</span><span class="p">(</span><span class="n">doc</span><span class="p">);</span>
+        <span class="n">ondemand</span><span class="o">::</span><span class="n">document_stream</span> <span class="n">stream</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">stream_res</span><span class="p">).</span><span class="n">value</span><span class="p">();</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">simdjson</span><span class="o">::</span><span class="n">ondemand</span><span class="o">::</span><span class="n">document_reference</span> <span class="n">d</span> <span class="o">:</span> <span class="n">stream</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">frame_id</span><span class="o">++</span><span class="p">;</span> <span class="c1">// &lt;- increment per JSON line</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">d</span><span class="p">.</span><span class="n">type</span><span class="p">().</span><span class="n">value</span><span class="p">()</span> <span class="o">!=</span> <span class="n">simdjson</span><span class="o">::</span><span class="n">ondemand</span><span class="o">::</span><span class="n">json_type</span><span class="o">::</span><span class="n">object</span><span class="p">)</span>
+                <span class="k">continue</span><span class="p">;</span>
+            <span class="k">auto</span> <span class="n">obj</span> <span class="o">=</span> <span class="n">d</span><span class="p">.</span><span class="n">get_object</span><span class="p">().</span><span class="n">value</span><span class="p">();</span>
+
+            <span class="c1">// ts may be string or number (OKX gives ms)</span>
+            <span class="kt">uint64_t</span> <span class="n">ts_ms</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="k">auto</span> <span class="n">ts_it</span> <span class="o">=</span> <span class="n">obj</span><span class="p">.</span><span class="n">find_field_unordered</span><span class="p">(</span><span class="s">"ts"</span><span class="p">);</span> <span class="n">ts_it</span><span class="p">.</span><span class="n">error</span><span class="p">()</span> <span class="o">==</span> <span class="n">SUCCESS</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="k">auto</span> <span class="n">v</span> <span class="o">=</span> <span class="n">ts_it</span><span class="p">.</span><span class="n">value</span><span class="p">();</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">v</span><span class="p">.</span><span class="n">type</span><span class="p">().</span><span class="n">value</span><span class="p">()</span> <span class="o">==</span> <span class="n">ondemand</span><span class="o">::</span><span class="n">json_type</span><span class="o">::</span><span class="n">string</span><span class="p">)</span>
+                <span class="p">{</span>
+                    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">s</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="n">v</span><span class="p">.</span><span class="n">get_string</span><span class="p">().</span><span class="n">value</span><span class="p">());</span>
+                    <span class="n">ts_ms</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint64_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">strtoull</span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="nb">nullptr</span><span class="p">,</span> <span class="mi">10</span><span class="p">));</span>
+                <span class="p">}</span>
+                <span class="k">else</span>
+                <span class="p">{</span>
+                    <span class="n">ts_ms</span> <span class="o">=</span> <span class="kt">uint64_t</span><span class="p">(</span><span class="n">v</span><span class="p">.</span><span class="n">get_uint64</span><span class="p">().</span><span class="n">value</span><span class="p">());</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+
+            <span class="k">auto</span> <span class="n">maybe_stop</span> <span class="o">=</span> <span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">void</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">bool</span>
+            <span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">row_limit</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">emitted</span> <span class="o">&gt;=</span> <span class="n">row_limit</span><span class="p">;</span>
+            <span class="p">};</span>
+
+            <span class="c1">// helper: emit one row per [px, qty, count?] tuple</span>
+            <span class="k">auto</span> <span class="n">push_side</span> <span class="o">=</span> <span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">ondemand</span><span class="o">::</span><span class="n">value</span> <span class="n">arr_val</span><span class="p">,</span> <span class="kt">uint8_t</span> <span class="n">side</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">arr_val</span><span class="p">.</span><span class="n">type</span><span class="p">().</span><span class="n">value</span><span class="p">()</span> <span class="o">!=</span> <span class="n">ondemand</span><span class="o">::</span><span class="n">json_type</span><span class="o">::</span><span class="n">array</span><span class="p">)</span>
+                    <span class="k">return</span><span class="p">;</span>
+                <span class="n">ondemand</span><span class="o">::</span><span class="n">array</span> <span class="n">arr</span> <span class="o">=</span> <span class="n">arr_val</span><span class="p">.</span><span class="n">get_array</span><span class="p">().</span><span class="n">value</span><span class="p">();</span>
+                <span class="kt">uint16_t</span> <span class="n">level</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+                <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="n">lvl_res</span> <span class="o">:</span> <span class="n">arr</span><span class="p">)</span>
+                <span class="p">{</span>
+                    <span class="n">ondemand</span><span class="o">::</span><span class="n">value</span> <span class="n">lvl_v</span> <span class="o">=</span> <span class="n">lvl_res</span><span class="p">.</span><span class="n">value</span><span class="p">();</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">lvl_v</span><span class="p">.</span><span class="n">type</span><span class="p">().</span><span class="n">value</span><span class="p">()</span> <span class="o">!=</span> <span class="n">ondemand</span><span class="o">::</span><span class="n">json_type</span><span class="o">::</span><span class="n">array</span><span class="p">)</span>
+                    <span class="p">{</span>
+                        <span class="o">++</span><span class="n">level</span><span class="p">;</span>
+                        <span class="k">continue</span><span class="p">;</span>
+                    <span class="p">}</span>
+                    <span class="n">ondemand</span><span class="o">::</span><span class="n">array</span> <span class="n">triple</span> <span class="o">=</span> <span class="n">lvl_v</span><span class="p">.</span><span class="n">get_array</span><span class="p">().</span><span class="n">value</span><span class="p">();</span>
+
+                    <span class="kt">double</span> <span class="n">px</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+                    <span class="kt">double</span> <span class="n">qty</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+                    <span class="kt">uint32_t</span> <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> 
+
+                    <span class="kt">size_t</span> <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+                    <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="n">c_res</span> <span class="o">:</span> <span class="n">triple</span><span class="p">)</span>
+                    <span class="p">{</span>
+                        <span class="k">auto</span> <span class="n">c</span> <span class="o">=</span> <span class="n">c_res</span><span class="p">.</span><span class="n">value</span><span class="p">();</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                        <span class="p">{</span>
+                            <span class="k">if</span> <span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">type</span><span class="p">().</span><span class="n">value</span><span class="p">()</span> <span class="o">==</span> <span class="n">ondemand</span><span class="o">::</span><span class="n">json_type</span><span class="o">::</span><span class="n">string</span><span class="p">)</span>
+                            <span class="p">{</span>
+                                <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">s</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">get_string</span><span class="p">().</span><span class="n">value</span><span class="p">());</span>
+                                <span class="n">px</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">strtod</span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="nb">nullptr</span><span class="p">);</span>
+                            <span class="p">}</span>
+                            <span class="k">else</span>
+                            <span class="p">{</span>
+                                <span class="n">px</span> <span class="o">=</span> <span class="kt">double</span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">get_double</span><span class="p">().</span><span class="n">value</span><span class="p">());</span>
+                            <span class="p">}</span>
+                        <span class="p">}</span>
+                        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">idx</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="p">{</span>
+                            <span class="k">if</span> <span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">type</span><span class="p">().</span><span class="n">value</span><span class="p">()</span> <span class="o">==</span> <span class="n">ondemand</span><span class="o">::</span><span class="n">json_type</span><span class="o">::</span><span class="n">string</span><span class="p">)</span>
+                            <span class="p">{</span>
+                                <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">s</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">get_string</span><span class="p">().</span><span class="n">value</span><span class="p">());</span>
+                                <span class="n">qty</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">strtod</span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="nb">nullptr</span><span class="p">);</span>
+                            <span class="p">}</span>
+                            <span class="k">else</span>
+                            <span class="p">{</span>
+                                <span class="n">qty</span> <span class="o">=</span> <span class="kt">double</span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">get_double</span><span class="p">().</span><span class="n">value</span><span class="p">());</span>
+                            <span class="p">}</span>
+                        <span class="p">}</span>
+                        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">idx</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span>
+                        <span class="p">{</span>
+                            <span class="k">if</span> <span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">type</span><span class="p">().</span><span class="n">value</span><span class="p">()</span> <span class="o">==</span> <span class="n">ondemand</span><span class="o">::</span><span class="n">json_type</span><span class="o">::</span><span class="n">string</span><span class="p">)</span>
+                            <span class="p">{</span>
+                                <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">s</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">get_string</span><span class="p">().</span><span class="n">value</span><span class="p">());</span>
+                                <span class="n">count</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">strtoul</span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="nb">nullptr</span><span class="p">,</span> <span class="mi">10</span><span class="p">));</span>
+                            <span class="p">}</span>
+                            <span class="k">else</span>
+                            <span class="p">{</span>
+                                <span class="c1">// Some venues encode counts as integers but ondemand lets us fetch as uint64</span>
+                                <span class="n">count</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">get_uint64</span><span class="p">().</span><span class="n">value</span><span class="p">());</span>
+                            <span class="p">}</span>
+                        <span class="p">}</span>
+                        <span class="o">++</span><span class="n">idx</span><span class="p">;</span>
+                    <span class="p">}</span>
+
+                    <span class="n">on_record</span><span class="p">(</span><span class="n">ts_ms</span><span class="p">,</span> <span class="n">side</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">px</span><span class="p">,</span> <span class="n">qty</span><span class="p">,</span> <span class="n">count</span><span class="p">);</span>
+
+                    <span class="k">if</span> <span class="p">(</span><span class="n">maybe_stop</span><span class="p">())</span>
+                    <span class="p">{</span>
+                        <span class="n">continue_parsing</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+                        <span class="k">break</span><span class="p">;</span>
+                    <span class="p">}</span>
+                    <span class="o">++</span><span class="n">level</span><span class="p">;</span>
+                    <span class="o">++</span><span class="n">emitted</span><span class="p">;</span>
+                <span class="p">}</span>
+            <span class="p">};</span>
+
+            <span class="c1">// bids / b</span>
+            <span class="k">if</span> <span class="p">(</span><span class="k">auto</span> <span class="n">it</span> <span class="o">=</span> <span class="n">obj</span><span class="p">.</span><span class="n">find_field_unordered</span><span class="p">(</span><span class="s">"bids"</span><span class="p">);</span> <span class="n">it</span><span class="p">.</span><span class="n">error</span><span class="p">()</span> <span class="o">==</span> <span class="n">SUCCESS</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="n">push_side</span><span class="p">(</span><span class="n">it</span><span class="p">.</span><span class="n">value</span><span class="p">(),</span> <span class="cm">/*side=*/</span><span class="mi">0</span><span class="p">);</span>
+            <span class="p">}</span>
+            <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="k">auto</span> <span class="n">it2</span> <span class="o">=</span> <span class="n">obj</span><span class="p">.</span><span class="n">find_field_unordered</span><span class="p">(</span><span class="s">"b"</span><span class="p">);</span> <span class="n">it2</span><span class="p">.</span><span class="n">error</span><span class="p">()</span> <span class="o">==</span> <span class="n">SUCCESS</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="n">push_side</span><span class="p">(</span><span class="n">it2</span><span class="p">.</span><span class="n">value</span><span class="p">(),</span> <span class="cm">/*side=*/</span><span class="mi">0</span><span class="p">);</span>
+            <span class="p">}</span>
+
+            <span class="c1">// asks / a</span>
+            <span class="k">if</span> <span class="p">(</span><span class="k">auto</span> <span class="n">it</span> <span class="o">=</span> <span class="n">obj</span><span class="p">.</span><span class="n">find_field_unordered</span><span class="p">(</span><span class="s">"asks"</span><span class="p">);</span> <span class="n">it</span><span class="p">.</span><span class="n">error</span><span class="p">()</span> <span class="o">==</span> <span class="n">SUCCESS</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="n">push_side</span><span class="p">(</span><span class="n">it</span><span class="p">.</span><span class="n">value</span><span class="p">(),</span> <span class="cm">/*side=*/</span><span class="mi">1</span><span class="p">);</span>
+            <span class="p">}</span>
+            <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="k">auto</span> <span class="n">it2</span> <span class="o">=</span> <span class="n">obj</span><span class="p">.</span><span class="n">find_field_unordered</span><span class="p">(</span><span class="s">"a"</span><span class="p">);</span> <span class="n">it2</span><span class="p">.</span><span class="n">error</span><span class="p">()</span> <span class="o">==</span> <span class="n">SUCCESS</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="n">push_side</span><span class="p">(</span><span class="n">it2</span><span class="p">.</span><span class="n">value</span><span class="p">(),</span> <span class="cm">/*side=*/</span><span class="mi">1</span><span class="p">);</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">continue_parsing</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="k">break</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+<span class="p">}</span> <span class="c1">// namespace mercury</span>
+
+<span class="cp">#endif // MERCURY_NDJSON_OKX_HPP
+</span></code></pre></div></div>
+
+<h3 id="okx_to_colstorecpp">okx_to_colstore.cpp</h3>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;filesystem&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;string_view&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;cstdlib&gt;</span><span class="cp">
+</span>
+<span class="cp">#include</span> <span class="cpf">&lt;simdjson.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">"mercury/colstore.hpp"</span><span class="cp">
+#include</span> <span class="cpf">"mercury/ndjson_okx.hpp"</span><span class="cp">
+</span>
+<span class="k">using</span> <span class="k">namespace</span> <span class="n">std</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Usage: okx_to_colstore &lt;input.data&gt; &lt;out_dir&gt; &lt;instId&gt;</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+        <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Example: okx_to_colstore BTC-USDT-L2orderbook-400lv-2025-09-20.data out/BTC-USDT BTC-USDT</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">const</span> <span class="n">string</span> <span class="n">in_path</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="k">const</span> <span class="n">filesystem</span><span class="o">::</span><span class="n">path</span> <span class="n">outdir</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="k">const</span> <span class="n">string</span> <span class="n">inst_id</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+    <span class="kt">uint64_t</span> <span class="n">row_limit</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">row_limit</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">strtoull</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="nb">nullptr</span><span class="p">,</span> <span class="mi">10</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">try</span>
+    <span class="p">{</span>
+        <span class="n">mercury</span><span class="o">::</span><span class="n">ColWriter</span> <span class="n">writer</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">);</span>
+
+        <span class="kt">size_t</span> <span class="n">emitted</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="kt">uint64_t</span> <span class="n">frame</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+        <span class="n">mercury</span><span class="o">::</span><span class="n">parse_okx_ndjson</span><span class="p">(</span><span class="n">in_path</span><span class="p">,</span> <span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">uint64_t</span> <span class="n">ts_ms</span><span class="p">,</span> <span class="kt">uint8_t</span> <span class="n">side</span><span class="p">,</span> <span class="kt">uint16_t</span> <span class="n">level</span><span class="p">,</span> <span class="kt">double</span> <span class="n">px</span><span class="p">,</span> <span class="kt">double</span> <span class="n">qty</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">count</span><span class="p">)</span>
+                                  <span class="p">{</span>
+                                      <span class="k">if</span> <span class="p">(</span><span class="n">qty</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">)</span>
+                                          <span class="k">return</span><span class="p">;</span>
+                                      <span class="n">writer</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">ts_ms</span><span class="p">,</span> <span class="n">side</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">px</span><span class="p">,</span> <span class="n">qty</span><span class="p">,</span> <span class="n">count</span><span class="p">);</span>
+                                      <span class="o">++</span><span class="n">emitted</span><span class="p">;</span>
+                                      <span class="k">if</span> <span class="p">((</span><span class="n">emitted</span> <span class="o">%</span> <span class="mi">1'000'000</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                                      <span class="p">{</span>
+                                          <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"… "</span> <span class="o">&lt;&lt;</span> <span class="n">emitted</span> <span class="o">&lt;&lt;</span> <span class="s">" rows written</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+                                      <span class="p">}</span> <span class="p">},</span> <span class="n">frame</span><span class="p">,</span> <span class="n">row_limit</span><span class="p">);</span>
+
+        <span class="n">writer</span><span class="p">.</span><span class="n">close</span><span class="p">();</span>
+        <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Wrote "</span> <span class="o">&lt;&lt;</span> <span class="n">writer</span><span class="p">.</span><span class="n">rows</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">" rows to "</span> <span class="o">&lt;&lt;</span> <span class="n">outdir</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">catch</span> <span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">exception</span> <span class="o">&amp;</span><span class="n">e</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"ERROR: "</span> <span class="o">&lt;&lt;</span> <span class="n">e</span><span class="p">.</span><span class="n">what</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+        <span class="k">return</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+
+
+        
+
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time class="dt-published" datetime="2025-10-15T00:00:00+05:30">October 15, 2025</time></p>
+
+      </footer>
+
+      
+
+      
+  <nav class="pagination">
+    
+      <a href="/notes/2015/10/13/my-feature-test.html" class="pagination--pager" title="Testing All The Features
+">Previous</a>
+    
+    
+      <a href="/notes/2025/10/15/WSL.html" class="pagination--pager" title="WSL
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+      
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+
+    
+
+    
+      <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+    
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2025 <a href="https://p-dhanush.github.io">P-Dhanush</a>. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+
+
+
+
+
+  </body>
+</html>

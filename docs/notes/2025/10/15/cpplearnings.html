@@ -1,0 +1,692 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.26.2 by Michael Rose
+  Copyright 2013-2024 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>CPP Learnings - P-Dhanush</title>
+<meta name="description" content="">
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="P-Dhanush">
+<meta property="og:title" content="CPP Learnings">
+<meta property="og:url" content="https://p-dhanush.github.io/notes/2025/10/15/cpplearnings.html">
+
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2025-10-15T10:30:00+05:30">
+
+
+
+
+
+
+<link rel="canonical" href="https://p-dhanush.github.io/notes/2025/10/15/cpplearnings.html">
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+
+  <link href="/feed.xml" type="application/atom+xml" rel="alternate" title="P-Dhanush Feed">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script type="text/javascript">
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+  
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css"></noscript>
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          P-Dhanush
+          
+        </a>
+        <ul class="visible-links"></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+  
+    
+      
+      
+      
+      
+    
+    
+      <nav class="nav__list">
+  
+  <input id="ac-toc" name="accordion-toc" type="checkbox" />
+  <label for="ac-toc">Toggle Menu</label>
+  <ul class="nav__items">
+    
+      
+      
+        <li>
+          
+            <span class="nav__sub-title">C++</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/pointers_and-references/">Pointers & References</a></li>
+            
+              <li><a href="/notes/classes/">Classes</a></li>
+            
+              <li><a href="/notes/structs/">Structs</a></li>
+            
+          </ul>
+          
+        </li>
+      
+        <li>
+          
+            <span class="nav__sub-title">Market Microstructure / HFT</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/column-store-architecture/">Crypto L2 Analysis: Part 1 — Column Store Architecture</a></li>
+            
+              <li><a href="/notes/okx-to-colstore/">OKX NDJSON → Colstore Ingest</a></li>
+            
+          </ul>
+          
+        </li>
+      
+        <li>
+          
+            <span class="nav__sub-title">Yield Curves / Rates</span>
+          
+
+          
+          <ul>
+            
+              <li><a href="/notes/usd-sofr-bootstrapping/">USD SOFR Bootstrapping — Guide</a></li>
+            
+              <li><a href="/notes/dv01-krd-heatmaps/">DV01 & Key-Rate Heatmaps</a></li>
+            
+          </ul>
+          
+        </li>
+      
+    
+  </ul>
+</nav>
+
+    
+  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="CPP Learnings">
+    <meta itemprop="description" content="">
+    <meta itemprop="datePublished" content="2025-10-15T10:30:00+05:30">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">
+            <a href="https://p-dhanush.github.io/notes/2025/10/15/cpplearnings.html" itemprop="url">CPP Learnings
+</a>
+          </h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title"><i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu"><li><a href="#cpp---learnings--notes">CPP - Learnings &amp; Notes</a><ul><li><a href="#reading-the-language-hopefully-like-a-professional">Reading the Language (hopefully like a professional)</a><ul><li><a href="#value-categories">Value Categories</a></li><li><a href="#lifetime--storage">Lifetime &amp; Storage</a></li><li><a href="#odr-one-definition-rule">ODR One Definition Rule</a></li></ul></li><li><a href="#object-model--memory">Object Model &amp; Memory</a><ul><li><a href="#layouts-and-invariants">Layouts and Invariants</a></li><li><a href="#ownerships-vs-views">Ownerships vs Views</a><ul><li><a href="#non-owning-views-string_view-span">Non-owning Views: string_view, span</a></li></ul></li><li><a href="#small-buffer-optimizations-sbo">Small Buffer Optimizations (SBO)</a></li><li><a href="#allocators">Allocators</a></li></ul></li><li><a href="#constructor-initialization-and-destruction">Constructor, Initialization and Destruction</a><ul><li><a href="#member-initializer-lists">Member-Initializer lists</a><ul><li><a href="#construction-vs-assignment">Construction vs Assignment</a></li><li><a href="#initialization-order--declaration-order">Initialization Order = Declaration Order</a></li></ul></li><li><a href="#special-member-functions-rule-of-035-of-thumbs-defaulted--deleted">Special Member Functions: rule of 0/3/5/-of-thumbs; defaulted &amp; deleted</a></li><li><a href="#explicit-vs-implicit-constructors--conversions">Explicit vs Implicit constructors &amp; conversions</a></li><li><a href="#uniform-initialization-brace-elision-most-vexing-parse-how-to-avoid">Uniform initialization, brace elision, most vexing parse (how to avoid)</a></li></ul></li><li><a href="#value-semantics-moves--perfect-forwarding">value semantics, moves &amp; perfect forwarding</a><ul><li><a href="#value-semantics-vs-reference-semantics">Value Semantics vs Reference Semantics</a></li><li><a href="#reference-vs-pointer-semantics">Reference vs Pointer Semantics</a><ul><li><a href="#-key-differences">🔍 Key Differences</a></li></ul></li><li><a href="#example-reference-vs-pointer">Example: Reference vs Pointer</a></li></ul></li><li><a href="#move-semantics">Move Semantics</a></li><li><a href="#copy-vs-move-when-moves-actually-happen-move-after-move-validity">Copy vs move: when moves actually happen; move-after-move validity</a></li><li><a href="#pass-by-value--move-vs-t-perfect-forwarding-parameter-patterns">Pass-by-value + move vs T&amp;&amp; perfect-forwarding parameter patterns</a></li><li><a href="#return-value-optimization-rvo-nrvo-and-nodiscard">Return Value Optimization (RVO), NRVO, and [[nodiscard]]</a></li></ul></li><li><a href="#functions-linkage-and-the-build-model">functions, linkage, and the build model</a><ul><li><a href="#headers-vs-source-files-declarations-definitions">Headers vs source files: declarations, definitions</a></li><li><a href="#inline-functions--variables-c17-static-in-headers-anonymous-namespaces">Inline functions &amp; variables (C++17+); static in headers; anonymous namespaces</a></li><li><a href="#templates-where-to-put-definitions-explicit-instantiation-to-shrink-abi">Templates: where to put definitions; explicit instantiation to shrink ABI</a></li><li><a href="#pimpl-to-stabilize-abi-and-speed-up-builds">PIMPL to stabilize ABI and speed up builds</a></li></ul></li><li><a href="#error-handling--contracts">error handling &amp; contracts</a><ul><li><a href="#exceptions-vs-status-codes-strongbasicnothrow-guarantees">Exceptions vs status codes; strong/basic/nothrow guarantees</a></li><li><a href="#noexcept-correctness-unwinding-costs-raii-as-the-backbone">noexcept correctness; unwinding costs; RAII as the backbone</a></li><li><a href="#assertions-preconditions-postconditions-and-expectsensures-style">Assertions, preconditions, postconditions (and [[expects]]/[[ensures]] style)</a></li></ul></li><li><a href="#interfaces--ownership-apis">interfaces &amp; ownership APIs</a><ul><li><a href="#function-parameters-input-string_view-span-output-stdstring-vector-return-value-in-out">Function parameters: input (string_view, span), output (std::string&amp;, vector&amp;, return value), in-out</a></li><li><a href="#avoiding-allocations-at-boundaries-reserve-append-fmt-vs-ostringstream">Avoiding allocations at boundaries: reserve, append, fmt vs ostringstream</a></li><li><a href="#stdoptional-expected-if-available-and-error-transport">std::optional, expected (if available), and error transport</a></li></ul></li><li><a href="#containers--iterators">containers &amp; iterators</a><ul><li><a href="#choosing-the-right-container-mapunordered_mapflat_map">Choosing the right container (map/unordered_map/flat_map)</a></li><li><a href="#iterator-invalidation-rules-node-vs-contiguous-containers">Iterator invalidation rules; node vs contiguous containers</a></li><li><a href="#views-and-ranges-c20-lazy-pipelines-stdrangesviews">Views and ranges (C++20): lazy pipelines, std::ranges::views</a></li></ul></li><li><a href="#strings-text-and-formatting">strings, text, and formatting</a><ul><li><a href="#stdstring-vs-string_view-utf-8-realities-slicing--lifetime">std::string vs string_view; UTF-8 realities; slicing &amp; lifetime</a></li><li><a href="#formatting-stdformat-c20-compile-time-format-checks-log-sinks">Formatting: std::format (C++20), compile-time format checks; log sinks</a></li></ul></li><li><a href="#filesystem--io">filesystem &amp; I/O</a><ul><li><a href="#stdfilesystempath-ties-back-to-your-ctor">std::filesystem::path (ties back to your ctor)</a></li><li><a href="#buffered-vs-unbuffered-io-memory-mapped-files-sync-vs-async">Buffered vs unbuffered I/O; memory-mapped files; sync vs async</a></li><li><a href="#binary-vs-text-endian--struct-packing">Binary vs text; endian &amp; struct packing</a></li></ul></li><li><a href="#concurrency--atomics">concurrency &amp; atomics</a><ul><li><a href="#stdthread-executors-when-available-futures">std::thread, executors (when available), futures</a></li><li><a href="#data-races-memory-orders-relaxed-acq_rel-seq_cst">Data races, memory orders (relaxed, acq_rel, seq_cst)</a></li><li><a href="#lock-free-basics-stdatomic_ref-hazards--aba">Lock-free basics; std::atomic_ref; hazards &amp; ABA</a></li></ul></li><li><a href="#templates--generic-programming">templates &amp; generic programming</a><ul><li><a href="#concepts--constraints-sfinae--requires-clauses">Concepts &amp; constraints; SFINAE → requires-clauses</a></li><li><a href="#perfect-forwarding-constructors-ctad-policy-based-design">Perfect-forwarding constructors; CTAD; policy-based design</a></li><li><a href="#crtp-and-zero-overhead-abstractions">CRTP and zero-overhead abstractions</a></li></ul></li><li><a href="#performance-engineering">performance engineering</a><ul><li><a href="#copy-elision-small-objects-cache-friendliness">Copy elision, small objects, cache friendliness</a></li><li><a href="#avoiding-virtual-when-hot-devirtualization-final">Avoiding virtual when hot; devirtualization; final</a></li><li><a href="#measuring-not-guessing-godbolt-perf-vtune-cachegrind">Measuring, not guessing: godbolt, perf, VTune, Cachegrind</a></li></ul></li><li><a href="#tooling--hygiene">tooling &amp; hygiene</a><ul><li><a href="#warnings-as-errors-sanitizers-static-analyzers">Warnings as errors; sanitizers; static analyzers</a></li><li><a href="#cmake-idioms-modules-when-practical">CMake idioms; modules (when practical)</a></li><li><a href="#coding-guidelines-es20-nl26-r11-gotwcppcoreguidelines">Coding guidelines: ES.20, NL.26, R.11 (GotW/CppCoreGuidelines)</a></li></ul></li></ul></li></ul>
+            </nav>
+          </aside>
+        
+        <h1 id="cpp---learnings--notes">CPP - Learnings &amp; Notes</h1>
+
+<ul id="markdown-toc">
+  <li><a href="#cpp---learnings--notes" id="markdown-toc-cpp---learnings--notes">CPP - Learnings &amp; Notes</a>    <ul>
+      <li><a href="#reading-the-language-hopefully-like-a-professional" id="markdown-toc-reading-the-language-hopefully-like-a-professional">Reading the Language (hopefully like a professional)</a>        <ul>
+          <li><a href="#value-categories" id="markdown-toc-value-categories">Value Categories</a></li>
+          <li><a href="#lifetime--storage" id="markdown-toc-lifetime--storage">Lifetime &amp; Storage</a></li>
+          <li><a href="#odr-one-definition-rule" id="markdown-toc-odr-one-definition-rule">ODR One Definition Rule</a></li>
+        </ul>
+      </li>
+      <li><a href="#object-model--memory" id="markdown-toc-object-model--memory">Object Model &amp; Memory</a>        <ul>
+          <li><a href="#layouts-and-invariants" id="markdown-toc-layouts-and-invariants">Layouts and Invariants</a></li>
+          <li><a href="#ownerships-vs-views" id="markdown-toc-ownerships-vs-views">Ownerships vs Views</a>            <ul>
+              <li><a href="#non-owning-views-string_view-span" id="markdown-toc-non-owning-views-string_view-span">Non-owning Views: string_view, span<T></T></a></li>
+            </ul>
+          </li>
+          <li><a href="#small-buffer-optimizations-sbo" id="markdown-toc-small-buffer-optimizations-sbo">Small Buffer Optimizations (SBO)</a></li>
+          <li><a href="#allocators" id="markdown-toc-allocators">Allocators</a></li>
+        </ul>
+      </li>
+      <li><a href="#constructor-initialization-and-destruction" id="markdown-toc-constructor-initialization-and-destruction">Constructor, Initialization and Destruction</a>        <ul>
+          <li><a href="#member-initializer-lists" id="markdown-toc-member-initializer-lists">Member-Initializer lists</a>            <ul>
+              <li><a href="#construction-vs-assignment" id="markdown-toc-construction-vs-assignment">Construction vs Assignment</a></li>
+              <li><a href="#initialization-order--declaration-order" id="markdown-toc-initialization-order--declaration-order">Initialization Order = Declaration Order</a></li>
+            </ul>
+          </li>
+          <li><a href="#special-member-functions-rule-of-035-of-thumbs-defaulted--deleted" id="markdown-toc-special-member-functions-rule-of-035-of-thumbs-defaulted--deleted">Special Member Functions: rule of 0/3/5/-of-thumbs; defaulted &amp; deleted</a></li>
+          <li><a href="#explicit-vs-implicit-constructors--conversions" id="markdown-toc-explicit-vs-implicit-constructors--conversions">Explicit vs Implicit constructors &amp; conversions</a></li>
+          <li><a href="#uniform-initialization-brace-elision-most-vexing-parse-how-to-avoid" id="markdown-toc-uniform-initialization-brace-elision-most-vexing-parse-how-to-avoid">Uniform initialization, brace elision, most vexing parse (how to avoid)</a></li>
+        </ul>
+      </li>
+      <li><a href="#value-semantics-moves--perfect-forwarding" id="markdown-toc-value-semantics-moves--perfect-forwarding">value semantics, moves &amp; perfect forwarding</a>        <ul>
+          <li><a href="#value-semantics-vs-reference-semantics" id="markdown-toc-value-semantics-vs-reference-semantics">Value Semantics vs Reference Semantics</a></li>
+          <li><a href="#reference-vs-pointer-semantics" id="markdown-toc-reference-vs-pointer-semantics">Reference vs Pointer Semantics</a>            <ul>
+              <li><a href="#-key-differences" id="markdown-toc--key-differences">🔍 Key Differences</a></li>
+              <li><a href="#example-reference-vs-pointer" id="markdown-toc-example-reference-vs-pointer">Example: Reference vs Pointer</a></li>
+            </ul>
+          </li>
+          <li><a href="#move-semantics" id="markdown-toc-move-semantics">Move Semantics</a></li>
+          <li><a href="#copy-vs-move-when-moves-actually-happen-move-after-move-validity" id="markdown-toc-copy-vs-move-when-moves-actually-happen-move-after-move-validity">Copy vs move: when moves actually happen; move-after-move validity</a></li>
+          <li><a href="#pass-by-value--move-vs-t-perfect-forwarding-parameter-patterns" id="markdown-toc-pass-by-value--move-vs-t-perfect-forwarding-parameter-patterns">Pass-by-value + move vs T&amp;&amp; perfect-forwarding parameter patterns</a></li>
+          <li><a href="#return-value-optimization-rvo-nrvo-and-nodiscard" id="markdown-toc-return-value-optimization-rvo-nrvo-and-nodiscard">Return Value Optimization (RVO), NRVO, and [[nodiscard]]</a></li>
+        </ul>
+      </li>
+      <li><a href="#functions-linkage-and-the-build-model" id="markdown-toc-functions-linkage-and-the-build-model">functions, linkage, and the build model</a>        <ul>
+          <li><a href="#headers-vs-source-files-declarations-definitions" id="markdown-toc-headers-vs-source-files-declarations-definitions">Headers vs source files: declarations, definitions</a></li>
+          <li><a href="#inline-functions--variables-c17-static-in-headers-anonymous-namespaces" id="markdown-toc-inline-functions--variables-c17-static-in-headers-anonymous-namespaces">Inline functions &amp; variables (C++17+); static in headers; anonymous namespaces</a></li>
+          <li><a href="#templates-where-to-put-definitions-explicit-instantiation-to-shrink-abi" id="markdown-toc-templates-where-to-put-definitions-explicit-instantiation-to-shrink-abi">Templates: where to put definitions; explicit instantiation to shrink ABI</a></li>
+          <li><a href="#pimpl-to-stabilize-abi-and-speed-up-builds" id="markdown-toc-pimpl-to-stabilize-abi-and-speed-up-builds">PIMPL to stabilize ABI and speed up builds</a></li>
+        </ul>
+      </li>
+      <li><a href="#error-handling--contracts" id="markdown-toc-error-handling--contracts">error handling &amp; contracts</a>        <ul>
+          <li><a href="#exceptions-vs-status-codes-strongbasicnothrow-guarantees" id="markdown-toc-exceptions-vs-status-codes-strongbasicnothrow-guarantees">Exceptions vs status codes; strong/basic/nothrow guarantees</a></li>
+          <li><a href="#noexcept-correctness-unwinding-costs-raii-as-the-backbone" id="markdown-toc-noexcept-correctness-unwinding-costs-raii-as-the-backbone">noexcept correctness; unwinding costs; RAII as the backbone</a></li>
+          <li><a href="#assertions-preconditions-postconditions-and-expectsensures-style" id="markdown-toc-assertions-preconditions-postconditions-and-expectsensures-style">Assertions, preconditions, postconditions (and [[expects]]/[[ensures]] style)</a></li>
+        </ul>
+      </li>
+      <li><a href="#interfaces--ownership-apis" id="markdown-toc-interfaces--ownership-apis">interfaces &amp; ownership APIs</a>        <ul>
+          <li><a href="#function-parameters-input-string_view-span-output-stdstring-vector-return-value-in-out" id="markdown-toc-function-parameters-input-string_view-span-output-stdstring-vector-return-value-in-out">Function parameters: input (string_view, span<const T="">), output (std::string&amp;, vector&amp;, return value), in-out</const></a></li>
+          <li><a href="#avoiding-allocations-at-boundaries-reserve-append-fmt-vs-ostringstream" id="markdown-toc-avoiding-allocations-at-boundaries-reserve-append-fmt-vs-ostringstream">Avoiding allocations at boundaries: reserve, append, fmt vs ostringstream</a></li>
+          <li><a href="#stdoptional-expected-if-available-and-error-transport" id="markdown-toc-stdoptional-expected-if-available-and-error-transport">std::optional, expected (if available), and error transport</a></li>
+        </ul>
+      </li>
+      <li><a href="#containers--iterators" id="markdown-toc-containers--iterators">containers &amp; iterators</a>        <ul>
+          <li><a href="#choosing-the-right-container-mapunordered_mapflat_map" id="markdown-toc-choosing-the-right-container-mapunordered_mapflat_map">Choosing the right container (map/unordered_map/flat_map)</a></li>
+          <li><a href="#iterator-invalidation-rules-node-vs-contiguous-containers" id="markdown-toc-iterator-invalidation-rules-node-vs-contiguous-containers">Iterator invalidation rules; node vs contiguous containers</a></li>
+          <li><a href="#views-and-ranges-c20-lazy-pipelines-stdrangesviews" id="markdown-toc-views-and-ranges-c20-lazy-pipelines-stdrangesviews">Views and ranges (C++20): lazy pipelines, std::ranges::views</a></li>
+        </ul>
+      </li>
+      <li><a href="#strings-text-and-formatting" id="markdown-toc-strings-text-and-formatting">strings, text, and formatting</a>        <ul>
+          <li><a href="#stdstring-vs-string_view-utf-8-realities-slicing--lifetime" id="markdown-toc-stdstring-vs-string_view-utf-8-realities-slicing--lifetime">std::string vs string_view; UTF-8 realities; slicing &amp; lifetime</a></li>
+          <li><a href="#formatting-stdformat-c20-compile-time-format-checks-log-sinks" id="markdown-toc-formatting-stdformat-c20-compile-time-format-checks-log-sinks">Formatting: std::format (C++20), compile-time format checks; log sinks</a></li>
+        </ul>
+      </li>
+      <li><a href="#filesystem--io" id="markdown-toc-filesystem--io">filesystem &amp; I/O</a>        <ul>
+          <li><a href="#stdfilesystempath-ties-back-to-your-ctor" id="markdown-toc-stdfilesystempath-ties-back-to-your-ctor">std::filesystem::path (ties back to your ctor)</a></li>
+          <li><a href="#buffered-vs-unbuffered-io-memory-mapped-files-sync-vs-async" id="markdown-toc-buffered-vs-unbuffered-io-memory-mapped-files-sync-vs-async">Buffered vs unbuffered I/O; memory-mapped files; sync vs async</a></li>
+          <li><a href="#binary-vs-text-endian--struct-packing" id="markdown-toc-binary-vs-text-endian--struct-packing">Binary vs text; endian &amp; struct packing</a></li>
+        </ul>
+      </li>
+      <li><a href="#concurrency--atomics" id="markdown-toc-concurrency--atomics">concurrency &amp; atomics</a>        <ul>
+          <li><a href="#stdthread-executors-when-available-futures" id="markdown-toc-stdthread-executors-when-available-futures">std::thread, executors (when available), futures</a></li>
+          <li><a href="#data-races-memory-orders-relaxed-acq_rel-seq_cst" id="markdown-toc-data-races-memory-orders-relaxed-acq_rel-seq_cst">Data races, memory orders (relaxed, acq_rel, seq_cst)</a></li>
+          <li><a href="#lock-free-basics-stdatomic_ref-hazards--aba" id="markdown-toc-lock-free-basics-stdatomic_ref-hazards--aba">Lock-free basics; std::atomic_ref; hazards &amp; ABA</a></li>
+        </ul>
+      </li>
+      <li><a href="#templates--generic-programming" id="markdown-toc-templates--generic-programming">templates &amp; generic programming</a>        <ul>
+          <li><a href="#concepts--constraints-sfinae--requires-clauses" id="markdown-toc-concepts--constraints-sfinae--requires-clauses">Concepts &amp; constraints; SFINAE → requires-clauses</a></li>
+          <li><a href="#perfect-forwarding-constructors-ctad-policy-based-design" id="markdown-toc-perfect-forwarding-constructors-ctad-policy-based-design">Perfect-forwarding constructors; CTAD; policy-based design</a></li>
+          <li><a href="#crtp-and-zero-overhead-abstractions" id="markdown-toc-crtp-and-zero-overhead-abstractions">CRTP and zero-overhead abstractions</a></li>
+        </ul>
+      </li>
+      <li><a href="#performance-engineering" id="markdown-toc-performance-engineering">performance engineering</a>        <ul>
+          <li><a href="#copy-elision-small-objects-cache-friendliness" id="markdown-toc-copy-elision-small-objects-cache-friendliness">Copy elision, small objects, cache friendliness</a></li>
+          <li><a href="#avoiding-virtual-when-hot-devirtualization-final" id="markdown-toc-avoiding-virtual-when-hot-devirtualization-final">Avoiding virtual when hot; devirtualization; final</a></li>
+          <li><a href="#measuring-not-guessing-godbolt-perf-vtune-cachegrind" id="markdown-toc-measuring-not-guessing-godbolt-perf-vtune-cachegrind">Measuring, not guessing: godbolt, perf, VTune, Cachegrind</a></li>
+        </ul>
+      </li>
+      <li><a href="#tooling--hygiene" id="markdown-toc-tooling--hygiene">tooling &amp; hygiene</a>        <ul>
+          <li><a href="#warnings-as-errors-sanitizers-static-analyzers" id="markdown-toc-warnings-as-errors-sanitizers-static-analyzers">Warnings as errors; sanitizers; static analyzers</a></li>
+          <li><a href="#cmake-idioms-modules-when-practical" id="markdown-toc-cmake-idioms-modules-when-practical">CMake idioms; modules (when practical)</a></li>
+          <li><a href="#coding-guidelines-es20-nl26-r11-gotwcppcoreguidelines" id="markdown-toc-coding-guidelines-es20-nl26-r11-gotwcppcoreguidelines">Coding guidelines: ES.20, NL.26, R.11 (GotW/CppCoreGuidelines)</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<hr />
+<h2 id="reading-the-language-hopefully-like-a-professional">Reading the Language (hopefully like a professional)</h2>
+
+<h3 id="value-categories">Value Categories</h3>
+<h3 id="lifetime--storage">Lifetime &amp; Storage</h3>
+<h3 id="odr-one-definition-rule">ODR One Definition Rule</h3>
+
+<h2 id="object-model--memory">Object Model &amp; Memory</h2>
+
+<h3 id="layouts-and-invariants">Layouts and Invariants</h3>
+
+<h3 id="ownerships-vs-views">Ownerships vs Views</h3>
+
+<h4 id="non-owning-views-string_view-span">Non-owning Views: string_view, span<T></T></h4>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>- Idea: separate ownership from access. Views are pointer+length, no allocation.
+- std::string_view: read-only contiguous chars; lifetime must outlive the view.
+- std::span&lt;T&gt;: typed view over contiguous T[]/vector&lt;T&gt;; read or read-write.
+- Rule: Prefer views for parameters; avoid storing them unless you control lifetime.
+- Patterns: “own + view” (own std::string, keep string_view member bound to it).
+</code></pre></div></div>
+
+<h3 id="small-buffer-optimizations-sbo">Small Buffer Optimizations (SBO)</h3>
+
+<h3 id="allocators">Allocators</h3>
+
+<h2 id="constructor-initialization-and-destruction">Constructor, Initialization and Destruction</h2>
+
+<h3 id="member-initializer-lists">Member-Initializer lists</h3>
+
+<h4 id="construction-vs-assignment">Construction vs Assignment</h4>
+<h4 id="initialization-order--declaration-order">Initialization Order = Declaration Order</h4>
+
+<h3 id="special-member-functions-rule-of-035-of-thumbs-defaulted--deleted">Special Member Functions: rule of 0/3/5/-of-thumbs; defaulted &amp; deleted</h3>
+<h3 id="explicit-vs-implicit-constructors--conversions">Explicit vs Implicit constructors &amp; conversions</h3>
+
+<p>Implicit &amp; Explicit Conversions</p>
+
+<p>A <em>non-explicit</em> constructor that can be called with a single argument enables implicit conversion:</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="nc">Meter</span> <span class="p">{</span>
+  <span class="kt">double</span> <span class="n">v</span><span class="p">;</span>
+  <span class="n">Meter</span><span class="p">(</span><span class="kt">double</span> <span class="n">x</span><span class="p">)</span> <span class="o">:</span> <span class="n">v</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="p">{}</span>  <span class="c1">// implicit conversion from double -&gt; Meter</span>
+<span class="p">};</span>
+
+<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">Meter</span> <span class="n">m</span><span class="p">);</span>
+<span class="n">f</span><span class="p">(</span><span class="mf">3.0</span><span class="p">);</span>  <span class="c1">// OK: 3.0 implicitly becomes Meter{3.0}</span>
+</code></pre></div></div>
+<p>Make it <code class="language-plaintext highlighter-rouge">explicit</code> to ban that implicit conversion (but still allow direct initialization):</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="nc">Meter</span> <span class="p">{</span>
+  <span class="kt">double</span> <span class="n">v</span><span class="p">;</span>
+  <span class="k">explicit</span> <span class="n">Meter</span><span class="p">(</span><span class="kt">double</span> <span class="n">x</span><span class="p">)</span> <span class="o">:</span> <span class="n">v</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="p">{}</span>
+<span class="p">};</span>
+
+<span class="n">f</span><span class="p">(</span><span class="mf">3.0</span><span class="p">);</span>           <span class="c1">// ERROR: no implicit conversion</span>
+<span class="n">f</span><span class="p">(</span><span class="n">Meter</span><span class="p">{</span><span class="mf">3.0</span><span class="p">});</span>    <span class="c1">// OK: direct-init</span>
+<span class="n">Meter</span> <span class="n">m</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">;</span>    <span class="c1">// ERROR: copy-init uses implicit conversion</span>
+<span class="n">Meter</span> <span class="n">m</span><span class="p">{</span><span class="mf">3.0</span><span class="p">};</span>     <span class="c1">// OK: direct-list-init</span>
+
+</code></pre></div></div>
+
+<p>This goes the other way as well, when we don’t wish to let our type be implicitly cast and used for another purpose. e.g,</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="nc">ID</span> <span class="p">{</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">s</span><span class="p">;</span>
+  <span class="k">explicit</span> <span class="k">operator</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">s</span><span class="p">;</span> <span class="p">}</span> <span class="c1">// only explicit casts allowed</span>
+<span class="p">};</span>
+
+<span class="n">ID</span> <span class="n">id</span><span class="p">{</span><span class="s">"abc"</span><span class="p">};</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">a</span> <span class="o">=</span> <span class="n">id</span><span class="p">;</span>        <span class="c1">// ERROR</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">b</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="n">id</span><span class="p">);</span> <span class="c1">// OK</span>
+
+</code></pre></div></div>
+
+<p>Notes:</p>
+<ul>
+  <li>
+    <p>Even multi-parameter ctors can enable implicit conversion if all but one have defaults; explicit still useful.</p>
+  </li>
+  <li>
+    <p>Places where implicit conversions happen: copy-initialization (T x = a;), passing args, returning from functions, conditional operator, etc.</p>
+  </li>
+</ul>
+
+<h3 id="uniform-initialization-brace-elision-most-vexing-parse-how-to-avoid">Uniform initialization, brace elision, most vexing parse (how to avoid)</h3>
+
+<h2 id="value-semantics-moves--perfect-forwarding">value semantics, moves &amp; perfect forwarding</h2>
+<h3 id="value-semantics-vs-reference-semantics">Value Semantics vs Reference Semantics</h3>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>- `T` vs `const T&amp;`
+    - Passing `T` by value copies the object.
+    - Passing `const T&amp;` avoids copying; just an alias. Also this a read only reference.
+    - Prefer `const T&amp;` for large/user-defined types (like `std::string`, `std::vector`).
+
+- `&amp;v` when `v` is `const T&amp;`: gives address of the original object.
+    - Even though `v` is a reference, `&amp;v` is just the address of the actual object.
+</code></pre></div></div>
+
+<h3 id="reference-vs-pointer-semantics">Reference vs Pointer Semantics</h3>
+
+<p>Both <strong>references</strong> (<code class="language-plaintext highlighter-rouge">const T&amp;</code>) and <strong>pointers</strong> (<code class="language-plaintext highlighter-rouge">const T*</code>) give access to an object’s memory, but are used in different contexts.</p>
+
+<h5 id="-key-differences">🔍 Key Differences</h5>
+
+<table>
+  <thead>
+    <tr>
+      <th>Concept</th>
+      <th><code class="language-plaintext highlighter-rouge">const T&amp; v</code> (reference)</th>
+      <th><code class="language-plaintext highlighter-rouge">const T* p</code> (pointer)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Usage</td>
+      <td>Clean syntax: <code class="language-plaintext highlighter-rouge">func(obj)</code></td>
+      <td>Must pass address: <code class="language-plaintext highlighter-rouge">func(&amp;obj)</code></td>
+    </tr>
+    <tr>
+      <td>Nullability</td>
+      <td>🔒 Cannot be null</td>
+      <td>⚠️ Can be null</td>
+    </tr>
+    <tr>
+      <td>Rebinding</td>
+      <td>❌ Cannot be reseated</td>
+      <td>✅ Can point to different objects</td>
+    </tr>
+    <tr>
+      <td>Access</td>
+      <td>Like a normal object: <code class="language-plaintext highlighter-rouge">v.size()</code></td>
+      <td>Requires dereferencing: <code class="language-plaintext highlighter-rouge">p-&gt;size()</code></td>
+    </tr>
+    <tr>
+      <td>Use Case</td>
+      <td>Default for safe aliasing, no mutation</td>
+      <td>Use for optional, low-level, or C APIs</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>References are ideal for most read-only function arguments where null is not allowed.</p>
+
+<hr />
+
+<h4 id="example-reference-vs-pointer">Example: Reference vs Pointer</h4>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">print_ref</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span> <span class="n">msg</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">msg</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">s</span> <span class="o">=</span> <span class="s">"hi"</span><span class="p">;</span>
+<span class="n">print_ref</span><span class="p">(</span><span class="n">s</span><span class="p">);</span>     <span class="c1">// ✅ clean</span>
+</code></pre></div></div>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">print_ptr</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">*</span> <span class="n">msg</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">msg</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">s</span> <span class="o">=</span> <span class="s">"hi"</span><span class="p">;</span>
+<span class="n">print_ptr</span><span class="p">(</span><span class="o">&amp;</span><span class="n">s</span><span class="p">);</span>    <span class="c1">// ✅ must pass an address explicitly</span>
+</code></pre></div></div>
+
+<h3 id="move-semantics">Move Semantics</h3>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>- `std::move(obj)` → casts an lvalue to an rvalue reference
+- Allows you to transfer ownership without copying
+- Used in initializer lists: `: member_(std::move(param))`
+- Also used in function returns
+</code></pre></div></div>
+
+<h3 id="copy-vs-move-when-moves-actually-happen-move-after-move-validity">Copy vs move: when moves actually happen; move-after-move validity</h3>
+
+<h3 id="pass-by-value--move-vs-t-perfect-forwarding-parameter-patterns">Pass-by-value + move vs T&amp;&amp; perfect-forwarding parameter patterns</h3>
+
+<h3 id="return-value-optimization-rvo-nrvo-and-nodiscard">Return Value Optimization (RVO), NRVO, and [[nodiscard]]</h3>
+
+<h2 id="functions-linkage-and-the-build-model">functions, linkage, and the build model</h2>
+
+<h3 id="headers-vs-source-files-declarations-definitions">Headers vs source files: declarations, definitions</h3>
+
+<h3 id="inline-functions--variables-c17-static-in-headers-anonymous-namespaces">Inline functions &amp; variables (C++17+); static in headers; anonymous namespaces</h3>
+<ul>
+  <li>What inline means in C++: ODR-ok to have identical defs in multiple TUs.</li>
+  <li>When to use: functions defined in headers; header-only libs; small utilities.
+An illustration:
+    <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">explicit</span> <span class="n">ColWriter</span><span class="p">(</span><span class="n">fs</span><span class="o">::</span><span class="n">path</span> <span class="n">outdir</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string_view</span> <span class="n">inst_id</span><span class="p">)</span>
+          <span class="o">:</span> <span class="n">outdir_</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">outdir</span><span class="p">))</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<p>this initializes <code class="language-plaintext highlighter-rouge">outdir_</code> before the ctor body. Any advantages to initilizaing beforehand?</p>
+
+<p>Without inline, suppose we had -&gt;</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// colstore.hpp</span>
+<span class="kt">void</span> <span class="nf">ensure_dir</span><span class="p">(</span><span class="k">const</span> <span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="o">&amp;</span> <span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">...</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>And included this in two <code class="language-plaintext highlighter-rouge">.cpp</code> files. We will get a linker error that says something like</p>
+<div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>multiple definition of `ensure_dir(...)`.
+</code></pre></div></div>
+
+<ul>
+  <li>Alternatives: put defs in a single .cpp; or static for TU-local copies (not one entity).</li>
+  <li>Since C++17: inline variables for header globals.</li>
+  <li>Gotcha: inline ≠ “hint to optimize.” It’s a linkage/ODR feature.</li>
+</ul>
+
+<h3 id="templates-where-to-put-definitions-explicit-instantiation-to-shrink-abi">Templates: where to put definitions; explicit instantiation to shrink ABI</h3>
+
+<h3 id="pimpl-to-stabilize-abi-and-speed-up-builds">PIMPL to stabilize ABI and speed up builds</h3>
+
+<h2 id="error-handling--contracts">error handling &amp; contracts</h2>
+
+<h3 id="exceptions-vs-status-codes-strongbasicnothrow-guarantees">Exceptions vs status codes; strong/basic/nothrow guarantees</h3>
+
+<h3 id="noexcept-correctness-unwinding-costs-raii-as-the-backbone">noexcept correctness; unwinding costs; RAII as the backbone</h3>
+
+<h3 id="assertions-preconditions-postconditions-and-expectsensures-style">Assertions, preconditions, postconditions (and [[expects]]/[[ensures]] style)</h3>
+
+<h2 id="interfaces--ownership-apis">interfaces &amp; ownership APIs</h2>
+
+<h3 id="function-parameters-input-string_view-span-output-stdstring-vector-return-value-in-out">Function parameters: input (string_view, span<const T="">), output (std::string&amp;, vector&amp;, return value), in-out</const></h3>
+
+<h3 id="avoiding-allocations-at-boundaries-reserve-append-fmt-vs-ostringstream">Avoiding allocations at boundaries: reserve, append, fmt vs ostringstream</h3>
+
+<h3 id="stdoptional-expected-if-available-and-error-transport">std::optional, expected (if available), and error transport</h3>
+
+<h2 id="containers--iterators">containers &amp; iterators</h2>
+
+<h3 id="choosing-the-right-container-mapunordered_mapflat_map">Choosing the right container (map/unordered_map/flat_map)</h3>
+
+<h3 id="iterator-invalidation-rules-node-vs-contiguous-containers">Iterator invalidation rules; node vs contiguous containers</h3>
+
+<h3 id="views-and-ranges-c20-lazy-pipelines-stdrangesviews">Views and ranges (C++20): lazy pipelines, std::ranges::views</h3>
+
+<h2 id="strings-text-and-formatting">strings, text, and formatting</h2>
+
+<h3 id="stdstring-vs-string_view-utf-8-realities-slicing--lifetime">std::string vs string_view; UTF-8 realities; slicing &amp; lifetime</h3>
+
+<h3 id="formatting-stdformat-c20-compile-time-format-checks-log-sinks">Formatting: std::format (C++20), compile-time format checks; log sinks</h3>
+
+<h2 id="filesystem--io">filesystem &amp; I/O</h2>
+
+<h3 id="stdfilesystempath-ties-back-to-your-ctor">std::filesystem::path (ties back to your ctor)</h3>
+
+<h3 id="buffered-vs-unbuffered-io-memory-mapped-files-sync-vs-async">Buffered vs unbuffered I/O; memory-mapped files; sync vs async</h3>
+
+<h3 id="binary-vs-text-endian--struct-packing">Binary vs text; endian &amp; struct packing</h3>
+
+<h2 id="concurrency--atomics">concurrency &amp; atomics</h2>
+
+<h3 id="stdthread-executors-when-available-futures">std::thread, executors (when available), futures</h3>
+
+<h3 id="data-races-memory-orders-relaxed-acq_rel-seq_cst">Data races, memory orders (relaxed, acq_rel, seq_cst)</h3>
+
+<h3 id="lock-free-basics-stdatomic_ref-hazards--aba">Lock-free basics; std::atomic_ref; hazards &amp; ABA</h3>
+
+<h2 id="templates--generic-programming">templates &amp; generic programming</h2>
+
+<h3 id="concepts--constraints-sfinae--requires-clauses">Concepts &amp; constraints; SFINAE → requires-clauses</h3>
+
+<h3 id="perfect-forwarding-constructors-ctad-policy-based-design">Perfect-forwarding constructors; CTAD; policy-based design</h3>
+
+<h3 id="crtp-and-zero-overhead-abstractions">CRTP and zero-overhead abstractions</h3>
+
+<h2 id="performance-engineering">performance engineering</h2>
+
+<h3 id="copy-elision-small-objects-cache-friendliness">Copy elision, small objects, cache friendliness</h3>
+
+<h3 id="avoiding-virtual-when-hot-devirtualization-final">Avoiding virtual when hot; devirtualization; final</h3>
+
+<h3 id="measuring-not-guessing-godbolt-perf-vtune-cachegrind">Measuring, not guessing: godbolt, perf, VTune, Cachegrind</h3>
+
+<h2 id="tooling--hygiene">tooling &amp; hygiene</h2>
+
+<h3 id="warnings-as-errors-sanitizers-static-analyzers">Warnings as errors; sanitizers; static analyzers</h3>
+
+<h3 id="cmake-idioms-modules-when-practical">CMake idioms; modules (when practical)</h3>
+
+<h3 id="coding-guidelines-es20-nl26-r11-gotwcppcoreguidelines">Coding guidelines: ES.20, NL.26, R.11 (GotW/CppCoreGuidelines)</h3>
+
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+
+
+        
+
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time class="dt-published" datetime="2025-10-15T10:30:00+05:30">October 15, 2025</time></p>
+
+      </footer>
+
+      
+
+      
+  <nav class="pagination">
+    
+      <a href="/notes/2025/10/15/WSL.html" class="pagination--pager" title="WSL
+">Previous</a>
+    
+    
+      <a href="/notes/2025/10/15/object-model-raii.html" class="pagination--pager" title="C++ Object Model &amp; RAII (Ownership, Lifetime, Memory)
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+      
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+
+    
+
+    
+      <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+    
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2025 <a href="https://p-dhanush.github.io">P-Dhanush</a>. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+
+
+
+
+
+  </body>
+</html>
