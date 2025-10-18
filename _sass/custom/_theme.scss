@@ -1,0 +1,60 @@
+/* Override theme default widths */
+$max-width: 1900px !default;              // Increase overall page width
+$content-width: 1300px !default;          // Increase main content width
+$right-sidebar-width: 400px !default;     // TOC width
+$gutter: 20px !default;
+
+/* Ensure containers use full width */
+.page,
+.masthead__inner-wrap,
+.initial-content,
+.page__inner-wrap {
+    max-width: $max-width;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+// /* Desktop: switch to a 2-column grid */
+// @media (min-width: 1200px) {
+//   .page__inner-wrap {
+//     display: grid;
+//     grid-template-columns: minmax(0, 1fr) $right-sidebar-width;
+//     column-gap: $gutter * 2;
+//   }
+
+//   /* Main content stretches until ToC starts */
+//   .page__content {
+//     grid-column: 1 / 2;
+//     max-width: none;              // let it grow
+//     width: auto;
+//     margin-right: 0;
+//     padding-right: $gutter;
+//   }
+
+//   /* Right sidebar (ToC) — fully right-aligned & sticky */
+//   .sidebar__right {
+//     grid-column: 2 / 2;
+//     width: $right-sidebar-width;
+//     justify-self: end;            // align to the right edge of the grid
+//     align-self: start;
+//     position: sticky;
+//     top: 2rem;                    // how far from top when “stuck”
+//     margin: 0;                    // no accidental offsets
+//     float: none;                  // kill theme float on large screens
+//   }
+
+// }
+
+// /* Tablet & below: fall back to theme behavior with sane widths */
+// @media (max-width: 1199.98px) {
+//   .page__content { max-width: $content-width; }
+// }
+
+// /* Typography (keep what you already had) */
+// .page__content h3 { font-size: 1.75rem !important; }
+// html { font-size: 16px;
+//   @media (min-width: 768px) { font-size: 18px; }
+//   @media (min-width: 1200px) { font-size: 20px; }
+// }
+// h1 { font-size: 2.25rem; }
+// h2 { font-size: 1.75rem; }

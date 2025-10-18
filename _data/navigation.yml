@@ -1,0 +1,23 @@
+blog:
+  - title: "C++"
+    children:
+      - title: "Pointers & References"
+        url: "/notes/pointers_and-references/"
+      - title: "Classes"
+        url: "/notes/classes/"
+      - title: "Structs"
+        url: "/notes/structs/"
+
+  - title: "Market Microstructure / HFT"
+    children:
+      - title: "Crypto L2 Analysis: Part 1 — Column Store Architecture"
+        url: "/notes/column-store-architecture/"
+      - title: "OKX NDJSON → Colstore Ingest"
+        url: "/notes/okx-to-colstore/"
+
+  - title: "Yield Curves / Rates"
+    children:
+      - title: "USD SOFR Bootstrapping — Guide"
+        url: "/notes/usd-sofr-bootstrapping/"
+      - title: "DV01 & Key-Rate Heatmaps"
+        url: "/notes/dv01-krd-heatmaps/"

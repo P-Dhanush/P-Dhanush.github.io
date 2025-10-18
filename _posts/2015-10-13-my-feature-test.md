@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: single
 title: "Testing All The Features"
 date: 2015-10-13
 categories: [notes]      # or a single string: category: notes
@@ -50,3 +50,7 @@ greet("World")
 ## Embedding an Interactive Datawrapper Chart
 
 <iframe title="Some repricing info'" aria-label="Map" id="datawrapper-chart-epn3b" src="https://datawrapper.dwcdn.net/epn3b/2/" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="435" data-external="1"></iframe>
+
+<iframe title="Some repricing info'" aria-label="Map" id="datawrapper-chart-epn3b" src="https://datawrapper.dwcdn.net/epn3b/2/" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="435" data-external="1"></iframe>
+
+![A descriptive caption for my sample image](/assets/images/firstss.png)

@@ -1,0 +1,29 @@
+--- 
+# Only the main Sass file needs front matter (the dashes are enough) 
+--- 
+@charset "utf-8";
+
+/* First import custom overrides and variables */
+@import "custom/theme";
+
+/* Then import theme skin */
+@import "minimal-mistakes/skins/{{ site.minimal_mistakes_skin | default: 'default' }}";
+
+/* Finally import the main theme */
+@import "minimal-mistakes";
+
+/* Optional: type scale overrides (see notes below) */
+/* $type-size-1: 2.25rem;  // h1
+$type-size-2: 1.75rem;    // h2
+$type-size-3: 1.5rem;     // h3
+$type-size-4: 1.25rem;    // h4
+$type-size-5: 1.125rem;   // h5
+$type-size-6: 1rem;       // h6
+$doc-font-size: 17px;     // base body size
+*/
+
+/* 3) Import the theme after your overrides */
+@import "minimal-mistakes";
+
+/* 4) Your extra tweaks go last (create _sass/custom/_custom.scss) */
+@import "custom/theme";
